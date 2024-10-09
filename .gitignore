@@ -1,4 +1,9 @@
-﻿# Byte-compiled / optimized / DLL files
+﻿# Мои:
+chrome_data/
+*.html
+
+
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class

@@ -1,99 +1,94 @@
-﻿from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.service import Service
+﻿# main.py
+
+# Стандартные библиотеки Python
+from enum import Enum
+import os
+
+# Сторонние библиотеки
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.options import Options
+from dotenv import load_dotenv
 
-# Функция с созданием и настройкой драйвера на хром
-def create_chrome_driver(chrome_driver_path):
-    # Настраиваем параметры Chrome
-    service = Service(chrome_driver_path)
-    chrome_options = Options()
-    chrome_options.add_argument("--incognito")  # Включаем режим инкогнито
-    chrome_options.add_argument("--headless")   # Включаем headless-режим (без открытия окна)
-    chrome_options.add_argument("--disable-gpu")  # Отключаем GPU (ускорение)
-    chrome_options.add_argument("--window-size=1920x1080")  # Задаем размер окна для корректного рендеринга
+# Сторонние библиотеки - Исключения
+from selenium.common.exceptions import TimeoutException
 
-    # Запускаем браузер с заданными параметрами
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    
-    return driver
+# Собственные модули
+from driver_setup import create_chrome_driver
+from tinkoff_auth import login_via_sms, login_via_otp, login_via_password
+from utils import get_text
 
-# Функция для авторизации
-def login_to_account(driver, phone_number, password):
-    driver.get("https://www.tbank.ru/login/")  # Прямая ссылка на страницу входа
-    submit_button_selector = 'button[automation-id="button-submit"]'
+# Собственные модули - Исключения
+from exceptions import LoginRedirectError
 
-    # Ввод номера телефона
-    write_input(driver, 'input[name="phone"]', phone_number)
-    click_button(driver, submit_button_selector)
-    
-    # Ввод кода из СМС
-    sms_code = input("Введите код из смс: ")
-    write_input(driver, 'input[automation-id="otp-input"]', sms_code)
+# Типы страниц при входе на сайт
+class PageType(Enum):
+    SMS_CODE = 'СМС-код'
+    PASSWORD = 'Вход в Т‑Банк'
+    OTP = 'Введите код'
+    EXPENSES = 'Расходы'
 
-    # Ввод пароля
-    write_input(driver, 'input[automation-id="password-input"]', password)
-    click_button(driver, submit_button_selector)
-
-    # Отказ от создания код-пароля для быстрого входа
-    click_button(driver,'button[automation-id="cancel-button"]')
-
-# Функция записи инфы в поле ввода
-def write_input(driver, element_selector, input):
+# Функция для определения типа страницы и вызова соответствующей функции
+def detect_login_type(driver):
     try:
-        # Явное ожидание перед вводом инфы
-        password_input = WebDriverWait(driver=driver, timeout=10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, element_selector))
+        # Ожидание любого слова из PageType
+        WebDriverWait(driver, 5).until(
+            lambda d: any(page_type.value in d.page_source for page_type in PageType)
         )
 
-        # Вводим номер телефона
-        password_input.send_keys(input)
-    except Exception as e:
-        print(f"Произошла ошибка при вводе данных: {str(e)}")
+        # Возврат типа страницы
+        for page_type in PageType:
+            if page_type.value in driver.page_source:
+                return page_type
 
-# Функция нажатия на кнопку
-def click_button(driver, button_selector):
-    try:
-        # Явное ожидание перед поиском кнопки
-        submit_button = WebDriverWait(driver=driver, timeout=10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, button_selector))
-        )
-        submit_button.click()  # Кликаем на кнопку
-    except Exception as e:
-        print(f"Произошла ошибка при нажатии на кнопку: {str(e)}")
+    except TimeoutException:
+        print("Время ожидания истекло, страница не загружена.")
+        return None
 
-# Функция для перехода в раздел баланса
-def navigate_to_balance(driver):
-    click_button(driver, 'a[href^="/mybank/accounts/debit/"]')
+    print("Не удалось определить тип страницы.")
+    return None
 
+# Функция для получения расходов
 def get_cost(driver):
     try:
-        # Ожидание появления элемента с классом abkrps9TW
-        element = WebDriverWait(driver=driver, timeout=10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'span.abkrps9TW'))
-        )
-
-        # Очищаем текст от символов валюты и лишних пробелов 
-        return element.text.replace(' ', '').replace('₽', '').strip()
+        selector = 'div.PieChart__value_gXIXVm' #'span.Money--module__money_agICnB'
+        cost = get_text(driver=driver, text_selector=selector, timeout=10)
+        cost = cost.replace('\u00A0', '').replace('₽', '').strip()#cost.replace(' ', '').replace('₽', '').strip()
+        return cost
     except Exception as e:
-        print(f"Произошла ошибка при получении расходов: {str(e)}")
-        return None
+        raise
 
 # Основной код работы
 def main():
-    chrome_driver_path = "C:\\Users\\nastg\\Downloads\\chromedriver-win64\\chromedriver-win64\\chromedriver.exe"
-    driver = create_chrome_driver(chrome_driver_path)
+    load_dotenv()
+
+    phone_number = os.getenv("PHONE_NUMBER")
+    password = os.getenv("PASSWORD")
+    path_to_chrome_profile = os.getenv("PATH_TO_CHROME_PROFILE")
+    otp_code = os.getenv("OTP_CODE")
+
+    driver = create_chrome_driver(path_to_chrome_profile)
 
     try:
-        phone_number = "ТВОЙ_НОМЕР"
-        password = "ТВОЙ_ПАРОЛЬ"
+        driver.get("https://www.tbank.ru/events/feed/")
 
-        login_to_account(driver, phone_number, password)  # Вход в аккаунт
-        navigate_to_balance(driver)  # Переход к балансу
-        print("РАСХОДЫ: " + get_cost(driver))
-
+        # Определение типа входа, вход в акк и забор расходов
+        detected_type = detect_login_type(driver)
+        if detected_type:
+            print(f"Обнаружен тип страницы: {detected_type}")
+            try:
+                # Вызываем соответствующую функцию
+                if detected_type == PageType.SMS_CODE:
+                    login_via_sms(driver=driver, phone_number=phone_number)
+                elif detected_type == PageType.PASSWORD:
+                    login_via_password(driver=driver, phone_number=phone_number, password=password, otp_code=otp_code)
+                elif detected_type == PageType.OTP:
+                    login_via_otp(driver=driver, otp_code=otp_code)
+            except LoginRedirectError:
+                login_via_password(driver=driver, phone_number=phone_number, password=password, otp_code=otp_code)
+            print(get_cost(driver))
+        else:
+            print("Тип страницы не был обнаружен.")
+    except Exception as e:
+        print(str(e))
     finally:
         driver.quit()
 
