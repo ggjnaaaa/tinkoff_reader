@@ -29,6 +29,9 @@ class PageType(Enum):
 # Функция для определения типа страницы и вызова соответствующей функции
 def detect_login_type(driver):
     try:
+        WebDriverWait(driver, 5).until(
+            lambda d: d.execute_script('return document.readyState') == 'complete'
+        )
         # Ожидание любого слова из PageType
         WebDriverWait(driver, 5).until(
             lambda d: any(page_type.value in d.page_source for page_type in PageType)
@@ -49,11 +52,11 @@ def detect_login_type(driver):
 # Функция для получения расходов
 def get_cost(driver):
     try:
-        selector = 'div.PieChart__value_gXIXVm' #'span.Money--module__money_agICnB'
+        selector = 'div.PieChart__value_gXIXVm' 
         cost = get_text(driver=driver, text_selector=selector, timeout=10)
-        cost = cost.replace('\u00A0', '').replace('₽', '').strip()#cost.replace(' ', '').replace('₽', '').strip()
+        cost = cost.replace('\u00A0', '').replace('₽', '').strip()
         return cost
-    except Exception as e:
+    except Exception:
         raise
 
 # Основной код работы

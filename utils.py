@@ -16,6 +16,9 @@ from selenium.common.exceptions import (
 # Общая функция для получения элемента с обработкой ошибок
 def get_element(driver, selector, timeout=5):
     try:
+        WebDriverWait(driver, 5).until(
+            lambda d: d.execute_script('return document.readyState') == 'complete'
+        )
         return WebDriverWait(driver=driver, timeout=timeout).until(
            EC.presence_of_element_located((By.CSS_SELECTOR, selector))
         )
