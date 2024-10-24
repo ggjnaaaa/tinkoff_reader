@@ -1,6 +1,6 @@
 ﻿# Мои:
 chrome_data/
-*.html
+chromedriver-win64/
 
 
 # Byte-compiled / optimized / DLL files
