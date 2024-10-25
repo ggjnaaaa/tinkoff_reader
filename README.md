@@ -2,6 +2,8 @@
 pip install webdriver-manager  
 pip install selenium  
 pip install python-dotenv
+pip install uvicorn
+pip install fastapi
 
 
 ### 09.10.24
