@@ -4,6 +4,8 @@ pip install selenium
 pip install python-dotenv
 pip install uvicorn
 pip install fastapi
+pip install psycopg2
+pip install sqlalchemy
 
 
 ### 09.10.24
