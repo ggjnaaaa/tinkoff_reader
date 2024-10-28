@@ -2,14 +2,12 @@
 
 # Стандартные библиотеки Python
 import re
-from time import sleep
 
 # Сторонние библиотеки
 from fastapi import HTTPException
 
 # Модули проекта
-from utils import write_input, click_button, check_for_error_message, detect_page_type, PageType
-from exceptions import LoginRedirectError
+from servises.browser_utils import write_input, click_button, check_for_error_message, detect_page_type, PageType
 
 # Селекторы полей
 error_selector = 'p[automation-id="server-error"]'  # Объект с выводом ошибки
@@ -24,24 +22,6 @@ sms_code_input_selector = 'input[automation-id="otp-input"]'  # Инпут см�
 pin_code_input_selector = 'input[automation-id="pin-code-input-0"]'  # Инпут временного кода
 password_input_selector = 'input[automation-id="password-input"]'  # Инпут пароля
 otp_input_selector = 'input[automation-id="otp-input"]'  # Инпут временного пароля
-
-# Функция для извлечения только цифр из номера телефона
-def extract_digits(phone_number):
-    return re.sub(r'\D', '', phone_number)  # Удаляем все символы, кроме цифр
-
-# Функция для получения номера телефона со страницы,,
-def get_phone_digits_from_page(driver):
-    # Исходный код страницы
-    page_source = driver.page_source
-
-    # Поиск номера телефона с помощью регулярного выражения
-    match = re.search(r'\+7\s?\d{3}\s?\*{3}[\s\-]\*{2}[\s\-]\d{2}', page_source)
-
-    # Возвращаем найденный номер телефона как строку
-    if match:
-        return extract_digits(match.group())
-    else:
-        return None
 
 def paged_login(driver, user_input, retries=3):
     attempt_current_page = 0

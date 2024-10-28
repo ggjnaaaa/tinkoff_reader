@@ -25,7 +25,7 @@
             let phoneNumber = document.getElementById('phone_number').value;
 
             // Отправляем запрос на API через fetch
-            fetch('http://127.0.0.1:8000/process/login/', {
+            fetch('http://127.0.0.1:8000/tinkoff/login/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -58,7 +58,7 @@
 
         // Обработка кнопки "Крестик" для disconnect
         document.getElementById('disconnectButton').addEventListener('click', function() {
-            fetch('http://127.0.0.1:8000/process/disconnect/', {
+            fetch('http://127.0.0.1:8000/tinkoff/disconnect/', {
                 method: 'POST'
             })
             .then(response => response.json())

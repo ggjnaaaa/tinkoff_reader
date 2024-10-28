@@ -1,11 +1,13 @@
-﻿### Сторонние библиотеки:
+### Сторонние библиотеки:
 pip install webdriver-manager  
 pip install selenium  
-pip install python-dotenv
-pip install uvicorn
-pip install fastapi
-pip install psycopg2
-pip install sqlalchemy
+pip install python-dotenv  
+pip install uvicorn  
+pip install fastapi  
+pip install psycopg2  
+pip install sqlalchemy  
+pip install jinja2  
+
 
 
 ### 09.10.24

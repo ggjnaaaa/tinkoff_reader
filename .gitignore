@@ -1,6 +1,7 @@
 ﻿# Мои:
 chrome_data/
 chromedriver-win64/
+*.deb
 
 
 # Byte-compiled / optimized / DLL files

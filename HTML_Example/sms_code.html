@@ -48,7 +48,7 @@
 
         // Получаем таймер с бэкенда, чтобы синхронизироваться с таймером на сайте Тинькофф
         function fetchTimer() {
-            fetch('http://127.0.0.1:8000/process/get_sms_timer/')  // Запрос на получение оставшегося времени до повторной отправки
+            fetch('http://127.0.0.1:8000/tinkoff/get_sms_timer/')  // Запрос на получение оставшегося времени до повторной отправки
                 .then(response => response.json())
                 .then(data => {
                     let timeLeft = data.time_left;
@@ -81,7 +81,7 @@
             errorMessage.style.display = 'none'; // Скрываем ошибку перед новой отправкой
 
             // Отправляем запрос на API через fetch
-            fetch('http://127.0.0.1:8000/process/login/', {
+            fetch('http://127.0.0.1:8000/tinkoff/login/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -124,7 +124,7 @@
 
         // Нажатие на кнопку "Отправить еще раз"
         document.getElementById('resendButton').addEventListener('click', function() {
-            fetch('http://127.0.0.1:8000/process/resend_sms/', {
+            fetch('http://127.0.0.1:8000/tinkoff/resend_sms/', {
                 method: 'POST'
             })
             .then(response => response.json())
@@ -149,7 +149,7 @@
 
         // Кнопка "Крестик" для disconnect
         document.getElementById('disconnectButton').addEventListener('click', function() {
-            fetch('http://127.0.0.1:8000/process/disconnect/', {
+            fetch('http://127.0.0.1:8000/tinkoff/disconnect/', {
                 method: 'POST'
             })
             .then(response => response.json())

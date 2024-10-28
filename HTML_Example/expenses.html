@@ -4,34 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Расходы</title>
-    <style>
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        table, th, td {
-            border: 1px solid black;
-        }
-        th, td {
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 </head>
 <body>
     <h1>Ваши расходы</h1>
-
-    <!-- Здесь будет отображаться общая сумма расходов -->
-    <h2 id="totalExpenses">Общая сумма расходов: 0 ₽</h2>
-
-    <!-- Здесь будет отображаться общая сумма расходов -->
-    <h2 id="totalIncome">Общая сумма доходов: 0 ₽</h2>
-
-    <!-- Таблица для вывода расходов -->
+    <div id="datePickerContainer">
+        <button id="filterButton">Выбрать период</button>
+        <button id="resetFilterButton">Сбросить фильтр</button>
+        <div id="datePicker"></div>
+    </div>
+    
     <table id="expensesTable">
         <thead>
             <tr>
@@ -40,75 +23,16 @@
                 <th>Тип операции</th>
                 <th>Сумма</th>
                 <th>Описание</th>
-                
+                <th>Статья</th>
             </tr>
         </thead>
-        <tbody>
-            <!-- Сюда будут вставляться строки с данными -->
-        </tbody>
+        <tbody></tbody>
     </table>
+    
+    <div id="disconnectButtonContainer"></div>
 
-    <!-- Кнопка для отключения (крестик) -->
-    <button id="disconnectButton" style="position: fixed; top: 10px; right: 10px;">&#10006;</button>
-
-    <script>
-        // Функция для загрузки данных расходов
-        function loadExpenses() {
-            fetch('http://127.0.0.1:8000/process/expenses/', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                if (response.status === 307) {
-                    // Если ошибка 307, то перенаправляем на другую страницу
-                    window.location.href = './index.html';
-                } else {
-                    return response.json();
-                }
-            })
-            .then(data => {
-                document.getElementById('totalExpenses').textContent = `Общая сумма расходов: ${data.total_expense} ₽`;
-                document.getElementById('totalIncome').textContent = `Общая сумма доходов: ${data.total_income} ₽`;
-                
-                const tableBody = document.getElementById('expensesTable').querySelector('tbody');
-                tableBody.innerHTML = '';
-
-                data.expenses.forEach(expense => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${expense.date_time}</td>
-                        <td>${expense.card_number}</td>
-                        <td>${expense.transaction_type}</td>
-                        <td>${expense.amount} ₽</td>
-                        <td>${expense.description}</td>
-                    `;
-                    tableBody.appendChild(row);
-                });
-            })
-            .catch(error => {
-                console.error('Ошибка при загрузке расходов:', error);
-            });
-        }
-
-        // Обработка кнопки "Крестик" для disconnect
-        document.getElementById('disconnectButton').addEventListener('click', function() {
-            fetch('http://127.0.0.1:8000/process/disconnect/', {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.message);
-                window.location.href = './index.html';  // Перенаправление на главную страницу после дисконнекта
-            })
-            .catch(error => {
-                console.error('Ошибка при disconnect:', error);
-            });
-        });
-
-        // Загружаем данные расходов при загрузке страницы
-        window.onload = loadExpenses;
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="/static/js/expenses.js"></script>
+    <script src="/static/js/disconnect.js"></script>
 </body>
 </html>

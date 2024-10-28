@@ -12,7 +12,7 @@
     <script>
         document.getElementById('checkLoginType').addEventListener('click', function() {
             // Отправляем GET-запрос на API для определения типа страницы
-            fetch('http://127.0.0.1:8000/process/', {
+            fetch('http://127.0.0.1:8000/tinkoff/', {
                 method: 'GET'
             })
             .then(response => response.json())
