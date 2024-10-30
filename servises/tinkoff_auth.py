@@ -134,6 +134,7 @@ def close_login_via_sms_page(driver):
     try:
         # Отмена входа по смс
         click_button(driver, reset_button_selector)
+        time.sleep(1)
         return detect_page_type(driver)
     except Exception as e:
         raise Exception(f"Ошибка при закрытии входа через смс-код: {str(e)}")

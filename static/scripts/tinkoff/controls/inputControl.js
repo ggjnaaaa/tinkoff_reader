@@ -58,7 +58,7 @@ class InputControl extends HTMLElement {
             const response = await fetch('/tinkoff/login/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ value })
+                body: JSON.stringify(value)
             });
 
             const data = await response.json();

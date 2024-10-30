@@ -33,14 +33,10 @@ def get_login_type(request: Request):
         tmp_driver = config.driver
     else:
         reset_interaction_time()
-    
-    print('SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSuka')
 
     try:
         tmp_driver.get(config.EXPENSES_URL)
-        print('++++++++++++++++++++++++')
         detected_type = detect_page_type(tmp_driver)
-        print(detected_type)
         if detected_type:
             if detected_type == PageType.LOGIN_SMS_CODE:
                 detected_type = close_login_via_sms_page(tmp_driver)
@@ -74,11 +70,12 @@ def login(request: Request, data: str = Body(...)):
         raise HTTPException(status_code=440, detail="Сессия истекла. Пожалуйста, войдите заново.")
     
     try:
+        print(data)
         result = paged_login(config.driver, data)
         print(result)
         if result:
             # Используем LoginResponse для возвращения ответа
-            return LoginResponse(status="success", next_page_type=result.name) 
+            return LoginResponse(status="success", next_page_type=result) 
         return LoginResponse(status="failed", next_page_type=None)
     except:
         raise
@@ -95,11 +92,16 @@ async def next_page(request: Request, step: str | None = Query(default=None)):
     else:
         page_type = detect_page_type(config.driver)
 
+    if page_type == PageType.LOGIN_SMS_CODE:
+        page_type = close_login_via_sms_page(config.driver)
+
+    print(page_type)
+    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+
     # Получаем путь к нужному шаблону
     template_path = page_type.template_path()
 
-    if page_type == PageType.LOGIN_SMS_CODE:
-        template_path = close_login_via_sms_page(config.driver).template_path()
+    
 
     if page_type == PageType.LOGIN_OTP:
         greeting_text = get_text(config.driver, "[automation-id='form-title']")

@@ -21,17 +21,22 @@ class SmsTimer extends HTMLElement {
     updateTimer(timeLeft) {
         const timerDisplay = this.shadowRoot.getElementById('timer');
         const resendButton = this.shadowRoot.getElementById('resendButton');
+        const countdown = this.shadowRoot.getElementById('countdown');
         
         timerDisplay.textContent = timeLeft;
         if (timeLeft <= 0) {
             timerDisplay.textContent = 0;
             resendButton.style.display = 'block';
+            countdown.style.display = 'none';
         } else {
             resendButton.style.display = 'none';
         }
     }
 
     fetchTimer() {
+        const countdown = this.shadowRoot.getElementById('countdown');
+        countdown.style.display = 'block';
+
         fetch('http://127.0.0.1:8000/tinkoff/get_sms_timer/')
             .then(response => response.json())
             .then(data => {

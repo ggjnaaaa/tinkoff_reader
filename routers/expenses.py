@@ -15,7 +15,7 @@ from fastapi.templating import Jinja2Templates
 # Собственные модули
 import tinkoff.config as config
 from servises.driver_setup import is_browser_active
-from servises.browser_utils import click_button
+from servises.browser_utils import click_button, detect_page_type, PageType
 from servises.general_utils import wait_for_new_download, expenses_redirect_by_period
 from tinkoff.models import (
     CategoryRequest,
@@ -48,10 +48,10 @@ def get_expenses(
     if not is_browser_active():
         raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
     
-    #driver.get(EXPENSES_URL)
-    #if detect_page_type(driver) != PageType.EXPENSES:
-    #    print(detect_page_type(driver))
-    #    raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
+    config.driver.get(config.EXPENSES_URL)
+    time.sleep(1)
+    if detect_page_type(config.driver) != PageType.EXPENSES:
+        raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
 
     # Открываем страницу расходов в зависимости от периода
     if rangeStart and rangeEnd:
@@ -62,8 +62,8 @@ def get_expenses(
     tmp_driver = config.driver
     start_time = time.time()
 
-    click_button(tmp_driver, '[data-qa-id="export"]')
-    click_button(tmp_driver, '//span[text()="Выгрузить все операции в CSV"]', By.XPATH)
+    click_button(tmp_driver, '[data-qa-id="export"]', timeout=5)
+    click_button(tmp_driver, '//span[text()="Выгрузить все операции в CSV"]', By.XPATH, timeout=5)
 
     total_income = 0.0
     total_expense = 0.0
