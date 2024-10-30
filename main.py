@@ -3,17 +3,20 @@
 # Сторонние библиотеки
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from fastapi.staticfiles import StaticFiles
 
 # Собственные модули
 from routers import (
     auth_tinkoff,
     expenses,
-    general
+    general,
+    start
 )
  
 # FastAPI и роутер
 app = FastAPI()
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 # Разрешаем CORS для всех источников
 app.add_middleware(
     CORSMiddleware,
@@ -27,3 +30,4 @@ app.add_middleware(
 app.include_router(auth_tinkoff.router)
 app.include_router(expenses.router)
 app.include_router(general.router)
+app.include_router(start.router)

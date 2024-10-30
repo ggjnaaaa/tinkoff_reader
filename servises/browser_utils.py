@@ -29,21 +29,36 @@ class PageType(Enum):
     LOGIN_OTP = 'Введите код для быстрого входа'
     EXPENSES = 'Расходы'
 
+    def template_path(self):
+        paths = {
+            PageType.LOGIN_SMS_CODE: "",
+            PageType.LOGIN_INPUT_SMS_CODE: "tinkoff/sms_code.html",
+            PageType.LOGIN_PHONE: "tinkoff/login_phone.html",
+            PageType.LOGIN_PASSWORD: "tinkoff/login_password.html",
+            PageType.LOGIN_CREATE_OTP: "tinkoff/create_otp.html",
+            PageType.LOGIN_OTP: "tinkoff/login_otp.html",
+            PageType.EXPENSES: "tinkoff/expenses.html",
+        }
+        return paths.get(self)
+
 # Функция для определения типа страницы
-def detect_page_type(driver):
-    try:
-        reset_interaction_time()
-        WebDriverWait(driver, 5).until(
-            lambda d: d.execute_script('return document.readyState') == 'complete'
-        )
-        WebDriverWait(driver, 5).until(
-            lambda d: any(page_type.value in d.page_source for page_type in PageType)
-        )
-        for page_type in PageType:
-            if page_type.value in driver.page_source:
-                return page_type
-    except TimeoutException:
-        return None
+def detect_page_type(driver, retries=3):
+    attempt_current_page = 0
+    while attempt_current_page < retries:
+        try:
+            reset_interaction_time()
+            WebDriverWait(driver, 5).until(
+                lambda d: d.execute_script('return document.readyState') == 'complete'
+            )
+            WebDriverWait(driver, 5).until(
+                lambda d: any(page_type.value in d.page_source for page_type in PageType)
+            )
+            for page_type in PageType:
+                if page_type.value in driver.page_source:
+                    return page_type
+            attempt_current_page += 1
+        except TimeoutException:
+            return None
 
 # Общая функция для получения элемента с обработкой ошибок
 def get_element(driver, selector, by=By.CSS_SELECTOR, timeout=5):

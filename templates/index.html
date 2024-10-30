@@ -1,0 +1,22 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Меню</title>
+</head>
+<body>
+    <h1>Меню</h1>
+    <button id="checkLoginType">Расходы тинькофф</button>
+    
+    <script>
+        let isRequestInProgress = false; // Флаг, предотвращающий повторные клики
+
+        document.getElementById('checkLoginType').addEventListener('click', function() {
+            if (isRequestInProgress) return; // Если запрос активен, игнорируем повторный клик
+            isRequestInProgress = true; // Устанавливаем флаг
+            window.location.href = '/tinkoff/';
+        });
+    </script>
+</body>
+</html>

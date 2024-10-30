@@ -6,16 +6,18 @@ import csv
 import os
 
 # Сторонние библиотеки
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse
 from selenium.webdriver.common.by import By
 from typing import List, Optional
+from fastapi.templating import Jinja2Templates
 
 # Собственные модули
-import config
+import tinkoff.config as config
 from servises.driver_setup import is_browser_active
 from servises.browser_utils import click_button
 from servises.general_utils import wait_for_new_download, expenses_redirect_by_period
-from models import (
+from tinkoff.models import (
     CategoryRequest,
     CategorySaveRequest
 )
@@ -28,6 +30,13 @@ categories_db = [
 ]
 
 router = APIRouter()
+templates = Jinja2Templates(directory="templates")
+
+# Эндпоинт для отображения страницы расходов
+@router.get("/tinkoff/expenses/page", response_class=HTMLResponse)
+async def show_expenses_page(request: Request):
+    # Передаем начальные параметры для рендеринга шаблона
+    return templates.TemplateResponse("tinkoff/expenses.html", {"request": request})
 
 # Эндпоинт для получения расходов за выбранный период
 @router.get("/tinkoff/expenses/")

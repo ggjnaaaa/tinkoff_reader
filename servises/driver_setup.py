@@ -12,7 +12,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import WebDriverException
 
 # Собственные модули
-import config
+import tinkoff.config as config
 
 # Глобальная переменная для хранения времени последнего взаимодействия
 last_interaction_time = time.time()
@@ -22,7 +22,7 @@ def create_chrome_driver(path_to_chrome_profile, path_to_chrome_driver, timeout)
     # Настраиваем параметры Chrome
     chrome_options = Options()
     chrome_options.add_argument(path_to_chrome_profile)  # Путь к папке профиля
-    chrome_options.add_argument("--headless")   # Включаем headless-режим (без открытия окна)
+    #chrome_options.add_argument("--headless")   # Включаем headless-режим (без открытия окна)
     chrome_options.add_argument("--disable-gpu")  # Отключаем GPU (ускорение)
     chrome_options.add_argument("--window-size=1920x1080")  # Задаем размер окна для корректного рендеринга
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Отключить автоматизацию

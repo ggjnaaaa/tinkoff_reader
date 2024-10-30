@@ -2,33 +2,30 @@
 
 # Стандартные библиотеки Python
 import os
+import traceback
 
 # Сторонние библиотеки
-from fastapi import APIRouter, HTTPException, Body
+from fastapi import APIRouter, HTTPException, Body, Request
 from dotenv import load_dotenv
+from fastapi.templating import Jinja2Templates
 
 # Собственные модули
-import config
+import tinkoff.config as config
 from servises.driver_setup import create_chrome_driver, close_driver, is_browser_active, reset_interaction_time
 from servises.tinkoff_auth import paged_login, close_login_via_sms_page
 from servises.browser_utils import get_text, detect_page_type, PageType, click_button
 
 router = APIRouter()
+templates = Jinja2Templates(directory="templates")
 
-# Основной процесс
+# Вход в тинькофф
 @router.get("/tinkoff/")
-def get_login_type():
+async def get_login_type(request: Request):
     tmp_driver = config.driver
     load_dotenv()
-
     config.DOWNLOAD_DIRECTORY = os.getenv("DOWNLOAD_DIRECTORY")
 
-    print("LGHKGL")
-    print(tmp_driver)
- 
-    print(is_browser_active())
     if not is_browser_active():
-        print("БРАУЗЕР ОТКРЫВАЕТСЯ")
         config.driver = create_chrome_driver(os.getenv("PATH_TO_CHROME_PROFILE"), 
                                              os.getenv("PATH_TO_CHROME_DRIVER"), 
                                              config.BROWSER_TIMEOUT)
@@ -36,32 +33,47 @@ def get_login_type():
     else:
         reset_interaction_time()
 
-    print("LJLHGLHGLG:G:K")
     try:
         tmp_driver.get(config.EXPENSES_URL)
         detected_type = detect_page_type(tmp_driver)
+        print(tmp_driver)
         print(detected_type)
         if detected_type:
+            page_path = detected_type.template_path()
+
             if detected_type == PageType.LOGIN_SMS_CODE:
                 close_login_via_sms_page(tmp_driver)
-            return {"status": "success", "next_page_type": detected_type.name}
+            
+            return templates.TemplateResponse(page_path, {"request": request})
         else:
             config.driver = close_driver()
             raise HTTPException(status_code=400, detail="Не удалось определить тип страницы.")
     except Exception as e:
         config.driver = close_driver()
         raise HTTPException(status_code=500, detail=str(e))
-    
-# Вход в лк тинькофф
+
+# Вход в ЛК Тинькофф: обработка логина
 @router.post("/tinkoff/login/")
-def login(data: str = Body(..., embed=False)):
+async def login_process(request: Request, data: str = Body(...)):
     if not config.driver:
         raise HTTPException(status_code=440, detail="Сессия истекла. Пожалуйста, войдите заново.")
-    
+
     try:
-        return paged_login(config.driver, data)
-    except Exception:
-        raise
+        result = paged_login(config.driver, data)
+        if result:
+            # Возвращаем JSON с указанием успешного входа и эндпоинта для перехода
+            return {"status": "success", "next_page": "/tinkoff/next/"}
+        return {"status": "failed", "message": "Ошибка входа"}
+    except Exception as e:
+        print("Ошибка в login_process:", traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Ошибка на сервере: {str(e)}")
+
+# Универсальный эндпоинт для загрузки следующей страницы
+@router.get("/tinkoff/next/")
+async def next_page(request: Request):
+    # Определяем нужный шаблон через detect_page_type
+    template_path = detect_page_type(config.driver).template_path()
+    return templates.TemplateResponse(template_path, {"request": request})
 
 @router.get("/tinkoff/get_sms_timer/")
 def get_sms_timer():

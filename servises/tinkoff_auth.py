@@ -1,7 +1,7 @@
 ﻿# tinkoff_auth.py
 
 # Стандартные библиотеки Python
-import re
+import time
 
 # Сторонние библиотеки
 from fastapi import HTTPException
@@ -24,29 +24,28 @@ password_input_selector = 'input[automation-id="password-input"]'  # Инпут 
 otp_input_selector = 'input[automation-id="otp-input"]'  # Инпут временного пароля
 
 def paged_login(driver, user_input, retries=3):
-    attempt_current_page = 0
-    while attempt_current_page < retries:
-        detected_page = detect_page_type(driver)
-        print(f"тип нынешней страницы: {detected_page}")
+    detected_page = detect_page_type(driver)
+    print(f"тип нынешней страницы: {detected_page}")
 
-        if detected_page:
-            result = route_login_by_page_type(driver, detected_page, user_input)
-            if result:
-                return result
-
-            attempt_new_page = 0
-            while attempt_new_page < retries:
-                new_detected_page = detect_page_type(driver)
-                print(f"тип следующей страницы: {new_detected_page}")
-                if new_detected_page and new_detected_page != detected_page:
-                    return {"status": "success", "next_page_type": new_detected_page.name}
-                else:
-                    attempt_new_page += 1
-                    print(f"Не удалось определить тип следующей страницы. Осталось попыток: {retries - attempt_current_page}")
-        else:
-            attempt_current_page += 1
-            print(f"Не удалось определить тип страницы. Осталось попыток: {retries - attempt_current_page}")
-    return {"status": 500, "message": "Проблемы с определением типа страницы"}
+    if detected_page:
+        try:
+            route_login_by_page_type(driver, detected_page, user_input)
+        except:
+            raise
+        
+        attempt_new_page = 1
+        while attempt_new_page <= retries:
+            new_detected_page = detect_page_type(driver)
+            print(f"тип следующей страницы: {new_detected_page}")
+            if new_detected_page and new_detected_page != detected_page:
+                return new_detected_page
+            else:
+                attempt_new_page += 1
+                print(f"Не удалось определить тип следующей страницы. Осталось попыток: {retries - attempt_new_page + 1}")
+                time.sleep(1)  # 
+    else:
+        print(f"Не удалось определить тип страницы.")
+    raise HTTPException(status_code=500, detail="Ошибка входа в тинькофф. Пожалуйста, войдите заново.")
 
 def route_login_by_page_type(driver, detected_page, user_input):
     try:
@@ -60,9 +59,7 @@ def route_login_by_page_type(driver, detected_page, user_input):
             create_otp_page(driver=driver, otp_code=user_input)
         elif detected_page == PageType.LOGIN_OTP:
             otp_page(driver=driver, otp_code=user_input)
-    except HTTPException as e:
-        return {"status": e.status_code, "detail": e.detail}
-    except Exception:
+    except:
         raise
     
 def phone_page(driver, phone_number):

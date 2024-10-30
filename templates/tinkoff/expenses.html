@@ -1,0 +1,46 @@
+{% extends "tinkoff/tinkoff_base.html" %}
+
+{% block title %}Расходы{% endblock %}
+
+
+{% block content %}
+<h1>Ваши расходы</h1>
+<h2 id="totalExpenses">Общая сумма расходов: 0 ₽</h2>
+<h2 id="totalIncome">Общая сумма доходов: 0 ₽</h2>
+
+<!-- Кнопка для выбора периода -->
+<button onclick="showPeriodOptions()">Выбрать период</button>
+<div id="periodOptions" style="display:none;">
+    <button onclick="setPeriod('week')">Текущая неделя</button>
+    <button onclick="setPeriod('month')">Этот месяц</button>
+    <button onclick="setPeriod('3month')">3 месяца</button>
+    <button onclick="setPeriod('year')">Этот год</button>
+    <button onclick="setPeriod('all')">За всё время</button>
+    <button onclick="customDatePicker()">Указать период...</button>
+</div>
+
+<table id="expensesTable">
+    <thead>
+        <tr>
+            <th>Дата и время операции</th>
+            <th>Карта</th>
+            <th>Тип операции</th>
+            <th>Сумма</th>
+            <th>Описание</th>
+            <th>Статья</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<!-- Поле для добавления категории, скрытое по умолчанию -->
+<div id="addCategorySection" style="display:none;">
+    <form id="addCategoryForm">
+        <input type="text" id="categoryName" placeholder="Название категории" required>
+        <input type="text" id="keywords" placeholder="Ключевые слова (через запятую)">
+        <button type="submit">Добавить категорию</button>
+    </form>
+</div>
+
+<script src="/static/scripts/tinkoff/expenses.js"></script>
+{% endblock %}

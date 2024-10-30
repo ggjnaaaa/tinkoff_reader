@@ -10,7 +10,7 @@ from fastapi import HTTPException
 from selenium.webdriver.common.by import By
 
 # Собственные модули
-import config
+import tinkoff.config as config
 
 # Вспомогательная функция для конвертации даты в Unix-время в секундах
 def convert_to_unix(date_str: str) -> int:
