@@ -10,6 +10,7 @@ class DisconnectButton extends HTMLElement {
         const button = document.createElement('button');
         button.innerHTML = '&#10006;';
         button.style.position = 'fixed';
+        button.classList.add('form-btn-submit');
         button.style.top = '10px';
         button.style.right = '10px';
 
@@ -23,7 +24,6 @@ class DisconnectButton extends HTMLElement {
             })
             .then(response => response.json())
             .then(data => {
-                alert(data.message);
                 window.location.href = '/';  // Перенаправляем на главную после disconnect
             })
             .catch(error => {

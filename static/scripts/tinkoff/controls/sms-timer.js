@@ -13,20 +13,6 @@ class SmsTimer extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = `
-            <style>
-                #countdown {
-                    font-size: 16px;
-                    margin-bottom: 10px;
-                }
-                #resendButton {
-                    display: none;
-                    padding: 8px;
-                    background-color: #007bff;
-                    color: white;
-                    border: none;
-                    cursor: pointer;
-                }
-            </style>
             <p id="countdown">Отправим код повторно через <span id="timer">${this.timeLeft}</span> секунд</p>
             <button id="resendButton">Отправить еще раз</button>
         `;

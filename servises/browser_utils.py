@@ -29,6 +29,14 @@ class PageType(Enum):
     LOGIN_OTP = 'Введите код для быстрого входа'
     EXPENSES = 'Расходы'
 
+    @classmethod
+    def from_string(cls, step: str):
+        """Преобразует строку в соответствующий объект PageType."""
+        for page_type in cls:
+            if page_type.value == step:
+                return page_type
+        raise ValueError(f"Неверный тип шага: {step}")
+
     def template_path(self):
         paths = {
             PageType.LOGIN_SMS_CODE: "",
@@ -106,18 +114,17 @@ def get_text(driver, text_selector, timeout=5):
     try:
         # Получаем элемент
         element = get_element(driver, text_selector, timeout=timeout)
-
         # Возвращаем текст
         return element.text
     except Exception:
         raise
     
 # Функция для проверки наличия сообщения об ошибке
-def check_for_error_message(driver, error_selector, timeout=1):
+def check_for_error_message(driver, error_selector, timeout=5):
     try:
         reset_interaction_time()
         # Ожидаем появления элемента с сообщением об ошибке
-        element = get_element(driver, error_selector, timeout=timeout)
-        return element  # Если элемент найден, возвращаем True
+        error = get_text(driver, error_selector, timeout=timeout)
+        return error  # Если элемент найден, возвращаем text
     except TimeoutException:
         return None  # Если по таймауту элемент не найден, возвращаем False

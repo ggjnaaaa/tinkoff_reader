@@ -42,7 +42,7 @@ def paged_login(driver, user_input, retries=3):
             else:
                 attempt_new_page += 1
                 print(f"Не удалось определить тип следующей страницы. Осталось попыток: {retries - attempt_new_page + 1}")
-                time.sleep(1)  # 
+                time.sleep(1)
     else:
         print(f"Не удалось определить тип страницы.")
     raise HTTPException(status_code=500, detail="Ошибка входа в тинькофф. Пожалуйста, войдите заново.")
@@ -69,7 +69,7 @@ def phone_page(driver, phone_number):
         click_button(driver, submit_button_selector)
         error_message = check_for_error_message(driver=driver, error_selector=error_selector)
         if error_message:
-            raise HTTPException(status_code=400, detail=error_message.text)
+            raise HTTPException(status_code=400, detail=error_message)
     except HTTPException:
         raise
     except Exception as e:
@@ -84,7 +84,7 @@ def sms_page(driver, sms_code):
             if not error_message:
                 break
             else:
-                raise HTTPException(status_code=400, detail=error_message.text)
+                raise HTTPException(status_code=400, detail=error_message)
     except HTTPException:
         raise
     except Exception as e:
@@ -97,7 +97,7 @@ def password_page(driver, password):
         click_button(driver, submit_button_selector)
         error_message = check_for_error_message(driver=driver, error_selector=error_selector)
         if error_message:
-            raise HTTPException(status_code=400, detail=error_message.text)
+            raise HTTPException(status_code=400, detail=error_message)
     except HTTPException:
         raise
     except Exception as e:
@@ -109,8 +109,9 @@ def create_otp_page(driver, otp_code):
         write_input(driver, pin_code_input_selector, otp_code)
         click_button(driver, submit_button_selector)
         error_message = check_for_error_message(driver=driver, error_selector=error_selector)
+
         if error_message:
-            raise HTTPException(status_code=400, detail=error_message.text)
+            raise HTTPException(status_code=400, detail=error_message)
     except HTTPException:
         raise
     except Exception as e:
@@ -121,8 +122,9 @@ def otp_page(driver, otp_code):
         # Ввод временного кода
         write_input(driver, pin_code_input_selector, otp_code)
         error_message = check_for_error_message(driver=driver, error_selector=error_selector)
+        print(error_message)
         if error_message:
-            raise HTTPException(status_code=400, detail=error_message.text)
+            raise HTTPException(status_code=400, detail=error_message)
     except HTTPException:
         raise
     except Exception as e:
@@ -132,11 +134,6 @@ def close_login_via_sms_page(driver):
     try:
         # Отмена входа по смс
         click_button(driver, reset_button_selector)
+        return detect_page_type(driver)
     except Exception as e:
         raise Exception(f"Ошибка при закрытии входа через смс-код: {str(e)}")
-    
-def request_new_sms(driver):
-    try:
-        click_button()
-    except:
-        raise

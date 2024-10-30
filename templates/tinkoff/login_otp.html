@@ -4,4 +4,13 @@
 
 {% block input_label %}Введите временный код:{% endblock %}
 
-{% block input_type %}code{% endblock %}
+{% block input_type %}number{% endblock %}
+
+{% block content %}
+    <h2 id="form-title" data-name="{{ name }}">Здравствуйте, {{ name }}!</h1>
+    {{ super() }}
+
+    <button class="action-button" type="button" id="reset-button">Я не {{ name }}</button>
+
+    <script src="/static/scripts/tinkoff/login_otp.js" defer></script>
+{% endblock %}
