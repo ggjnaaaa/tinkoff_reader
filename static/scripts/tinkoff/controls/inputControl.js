@@ -4,21 +4,17 @@ class InputControl extends HTMLElement {
 
         const shadowRoot = this.attachShadow({ mode: 'open' });
 
-        // Добавление стилей
+        // Подключаем внешние стили
         const link = document.createElement('link');
         link.setAttribute('rel', 'stylesheet');
         link.setAttribute('href', '/static/tinkoff_style.css');
         shadowRoot.appendChild(link);
 
-        // Получаем значения атрибутов `label` и `type`
-        const label = this.getAttribute('label') || 'Введите значение';
-        const type = this.getAttribute('type') || 'text';
-
         // HTML шаблон компонента
-        this.shadowRoot.innerHTML = `
+        shadowRoot.innerHTML += `
             <div class="input-container">
-                <label>${label}</label>
-                <input type="${type}" />
+                <label>${this.getAttribute('label') || 'Введите значение'}</label>
+                <input type="${this.getAttribute('type') || 'text'}" />
                 <span class="error-message"></span>
                 <button type="button">
                     Отправить
@@ -27,9 +23,10 @@ class InputControl extends HTMLElement {
             </div>
         `;
 
-        this.input = this.shadowRoot.querySelector('input');
-        this.errorMessageElement = this.shadowRoot.querySelector('.error-message');
-        this.button = this.shadowRoot.querySelector('button');
+        // Получаем элементы для управления логикой
+        this.input = shadowRoot.querySelector('input');
+        this.errorMessageElement = shadowRoot.querySelector('.error-message');
+        this.button = shadowRoot.querySelector('button');
 
         this.button.addEventListener('click', () => this.handleSubmit());
     }

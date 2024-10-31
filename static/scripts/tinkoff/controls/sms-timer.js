@@ -3,25 +3,55 @@ class SmsTimer extends HTMLElement {
         super();
         const shadowRoot = this.attachShadow({ mode: 'open' });
 
-        // Добавление стилей
-        const link = document.createElement('link');
-        link.setAttribute('rel', 'stylesheet');
-        link.setAttribute('href', '/static/tinkoff_style.css');
-        shadowRoot.appendChild(link);
+        // Добавление стилей напрямую
+        const style = document.createElement('style');
+        style.textContent = `
+            .timer-text {
+                font-size: 1rem;
+                color: #333;
+                margin-top: 10px;
+                text-align: center;
+                background-color: #f9f9f9;
+                padding: 8px;
+                border: 1px solid #ddd;
+                border-radius: 3px;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+            #timer {
+                font-weight: bold;
+                color: #004080;
+            }
+            button {
+                background-color: #004080;
+                color: #fff;
+                padding: 8px 16px;
+                font-size: 0.9rem;
+                border: none;
+                cursor: pointer;
+                border-radius: 5px;
+                margin-top: 8px;
+            }
+            button:hover {
+                background-color: #003366;
+            }
+        `;
+        shadowRoot.appendChild(style);
 
-        this.timeLeft = 30;  // Можно задать начальное значение
+        this.timeLeft = 30; // Начальное значение таймера
     }
 
     connectedCallback() {
         this.render();
         this.fetchTimer();
-        this.shadowRoot.getElementById('resendButton').addEventListener('click', () => this.resendCode());
+        this.shadowRoot
+            .getElementById('resendButton')
+            .addEventListener('click', () => this.resendCode());
     }
 
     render() {
-        this.shadowRoot.innerHTML = `
-            <p id="countdown">Отправим код повторно через <span id="timer">${this.timeLeft}</span> сек</p>
-            <button id="resendButton">Отправить еще раз</button>
+        this.shadowRoot.innerHTML += `
+            <p id="countdown" class="timer-text">Отправим код повторно через <span id="timer">${this.timeLeft}</span> сек</p>
+            <button id="resendButton" type="button">Отправить еще раз</button>
         `;
     }
 

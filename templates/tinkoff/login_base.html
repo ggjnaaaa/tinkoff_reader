@@ -2,7 +2,9 @@
 
 {% block content %}
     <!-- Ввод информации -->
-    <input-control label="{% block input_label %} {% endblock %}" type="{% block input_type %} {% endblock %}"></input-control>
+    <div class="input-wrapper">
+        <input-control label="{% block input_label %} {% endblock %}" type="{% block input_type %} {% endblock %}"></input-control>
+    </div>
 {% endblock %}
 
 {% block scripts %}

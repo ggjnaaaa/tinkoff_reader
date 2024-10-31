@@ -34,6 +34,7 @@ button:hover {
     position: relative;
 }
 
+/* Для страницы расходов */
 .period-options {
     display: none;
     position: absolute;
@@ -83,4 +84,31 @@ button:hover {
 
 .expenses-table tr:nth-child(odd) {
     background-color: #ffffff;
+}
+
+/* Для inputControl */
+.input-wrapper {
+    margin-top: 20px; /* Настраиваем отступ сверху */
+}
+
+.input-container {
+    display: flex;
+    flex-direction: column; /* Выравнивание элементов по вертикали */
+    gap: 10px; /* Промежуток между элементами */
+    max-width: 300px; /* Ограничение ширины контейнера, если нужно */
+    margin: 0 auto; /* Центрирование */
+}
+
+/* убирает стрелочки в инпуте числа */
+input[type="number"] {
+    -webkit-appearance: none; /* Для Chrome, Safari, Edge */
+    -moz-appearance: textfield; /* Для Firefox */
+    appearance: none; /* Стандартное свойство, если оно поддерживается */
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
 }
