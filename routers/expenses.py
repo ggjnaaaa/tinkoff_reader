@@ -42,22 +42,21 @@ async def show_expenses_page(request: Request):
 @router.get("/tinkoff/expenses/")
 def get_expenses( 
     period: Optional[str] = Query("month"),  # Необязательный период
-    rangeStart: Optional[int] = None,  # Необязательное начало периода
-    rangeEnd: Optional[int] = None  # Необязательный конец периода
+    rangeStart: Optional[str] = None,  # Необязательное начало периода
+    rangeEnd: Optional[str] = None  # Необязательный конец периода
 ):
     if not is_browser_active():
         raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
     
-    config.driver.get(config.EXPENSES_URL)
-    time.sleep(1)
-    if detect_page_type(config.driver) != PageType.EXPENSES:
-        raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
-
     # Открываем страницу расходов в зависимости от периода
     if rangeStart and rangeEnd:
         config.driver.get(f'https://www.tbank.ru/events/feed/?rangeStart={rangeStart}&rangeEnd={rangeEnd}&preset=calendar')
     else:
         expenses_redirect_by_period(period)
+
+    time.sleep(1)
+    if detect_page_type(config.driver) != PageType.EXPENSES:
+        raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
 
     tmp_driver = config.driver
     start_time = time.time()

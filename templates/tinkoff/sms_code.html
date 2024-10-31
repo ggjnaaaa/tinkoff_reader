@@ -10,5 +10,10 @@
     {{ super() }}
 
     <sms-timer></sms-timer>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+
     <script src="/static/scripts/tinkoff/controls/sms-timer.js" defer></script>
 {% endblock %}

@@ -29,6 +29,14 @@ def create_chrome_driver(path_to_chrome_profile, path_to_chrome_driver, timeout)
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option('useAutomationExtension', False)
 
+    # Отключаем всплывающие уведомления
+    chrome_options.add_experimental_option("prefs", {
+        "profile.default_content_setting_values.notifications": 2  # 2 - блокировать
+    })
+    chrome_options.add_argument("--disable-notifications")  # отключение всех уведомлений
+    chrome_options.add_argument("--disable-popup-blocking")  # блокировка всплывающих окон
+    chrome_options.add_argument("--disable-infobars")  # убирает информационные панели
+
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36")  # Чтобы запросы не выглядели как от селениума
 
     # Устанавливаем настройки для загрузки файлов

@@ -95,9 +95,6 @@ async def next_page(request: Request, step: str | None = Query(default=None)):
     if page_type == PageType.LOGIN_SMS_CODE:
         page_type = close_login_via_sms_page(config.driver)
 
-    print(page_type)
-    print("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-
     # Получаем путь к нужному шаблону
     template_path = page_type.template_path()
 

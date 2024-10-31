@@ -11,31 +11,31 @@
 }
 
 /* Стили для компонента ввода */
-:host .input-container {
+.input-container {
     display: flex;
     flex-direction: column;
     gap: 10px;
 }
 
-:host .input-container label {
+.input-container label {
     font-size: 1.2em;
     color: #333;
 }
 
-:host .input-container input {
+.input-container input {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
 }
 
-:host .input-container .error-message {
+.input-container .error-message {
     display: none;
     color: red;
     font-size: 0.9em;
 }
 
 /* Кнопка отправки */
-:host .input-container button {
+.input-container button {
     background-color: #4CAF50;
     color: white;
     padding: 10px;
@@ -45,7 +45,7 @@
     align-items: center;
 }
 
-:host .input-container button span {
+.input-container button span {
     margin-left: 8px;
 }
 
@@ -63,4 +63,11 @@
     border: none;
     cursor: pointer;
     margin-top: 10px;
+}
+
+/* Список периодов */
+.period-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }

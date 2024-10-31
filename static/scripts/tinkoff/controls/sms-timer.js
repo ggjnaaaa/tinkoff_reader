@@ -13,7 +13,7 @@ class SmsTimer extends HTMLElement {
 
     render() {
         this.shadowRoot.innerHTML = `
-            <p id="countdown">Отправим код повторно через <span id="timer">${this.timeLeft}</span> секунд</p>
+            <p id="countdown">Отправим код повторно через <span id="timer">${this.timeLeft}</span> сек</p>
             <button id="resendButton">Отправить еще раз</button>
         `;
     }

@@ -11,6 +11,8 @@
     {{ super() }}
 
     <button class="action-button" type="button" id="reset-button">Я не {{ name }}</button>
+{% endblock %}
 
+{% block scripts %}
     <script src="/static/scripts/tinkoff/login_otp.js" defer></script>
 {% endblock %}
