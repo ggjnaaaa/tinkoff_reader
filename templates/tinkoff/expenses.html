@@ -3,9 +3,15 @@
 {% block title %}Расходы{% endblock %}
 
 {% block head %}
+    <!-- Календарь -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
+
+    <!--Изменяемые столбцы -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/dobtco/jquery-resizable-columns@0.2.3/dist/jquery.resizableColumns.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dobtco/jquery-resizable-columns@0.2.3/dist/jquery.resizableColumns.css">
 {% endblock %}
 
 
@@ -14,23 +20,24 @@
     <h2 id="totalExpenses">Общая сумма расходов: 0 ₽</h2>
     <h2 id="totalIncome">Общая сумма доходов: 0 ₽</h2>
 
-    <!-- Кнопка для выбора периода -->
-    <button onclick="showPeriodOptions()">Выбрать период</button>
-    <div id="periodOptions" class="period-options">
-        <button onclick="loadDayExpenses()">Сегодня</button>
-        <button onclick="loadExpensesByDefaultPeriod('week')">Текущая неделя</button>
-        <button onclick="loadExpensesByDefaultPeriod('month')">Этот месяц</button>
-        <button onclick="loadExpensesByDefaultPeriod('3month')">3 месяца</button>
-        <button onclick="loadExpensesByDefaultPeriod('year')">Этот год</button>
-        <button onclick="customDatePicker()">Указать период...</button>
+    <!-- Выпадающий список для выбора периода -->
+    <div style="position: relative;">
+        <button id="periodButton" onclick="togglePeriodOptions()">Этот месяц</button>
+        <div id="periodOptions" class="period-options">
+            <button onclick="loadDayExpenses(); setPeriodLabel('Сегодня')">Сегодня</button>
+            <button onclick="loadExpensesByDefaultPeriod('week'); setPeriodLabel('Текущая неделя')">Текущая неделя</button>
+            <button onclick="loadExpensesByDefaultPeriod('month'); setPeriodLabel('Этот месяц')">Этот месяц</button>
+            <button onclick="loadExpensesByDefaultPeriod('3month'); setPeriodLabel('3 месяца')">3 месяца</button>
+            <button onclick="loadExpensesByDefaultPeriod('year'); setPeriodLabel('Этот год')">Этот год</button>
+        </div>
     </div>
 
-    <div>
+    <div style="margin-top: 15px;">
         <label for="dateRange">Выберите период:</label>
         <input id="dateRange" type="text" placeholder="Выберите период" />
     </div>
 
-    <table id="expensesTable">
+    <table id="expensesTable" class="expenses-table resizable">
         <thead>
             <tr>
                 <th>Дата и время операции</th>
@@ -43,15 +50,6 @@
         </thead>
         <tbody></tbody>
     </table>
-
-    <!-- Поле для добавления категории, скрытое по умолчанию -->
-    <div id="addCategorySection" style="display:none;">
-        <form id="addCategoryForm">
-            <input type="text" id="categoryName" placeholder="Название категории" required>
-            <input type="text" id="keywords" placeholder="Ключевые слова (через запятую)">
-            <button type="submit">Добавить категорию</button>
-        </form>
-    </div>
 {% endblock %}
 
 {% block scripts %}

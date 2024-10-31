@@ -1,7 +1,14 @@
 class SmsTimer extends HTMLElement {
     constructor() {
         super();
-        this.attachShadow({ mode: "open" });
+        const shadowRoot = this.attachShadow({ mode: 'open' });
+
+        // Добавление стилей
+        const link = document.createElement('link');
+        link.setAttribute('rel', 'stylesheet');
+        link.setAttribute('href', '/static/tinkoff_style.css');
+        shadowRoot.appendChild(link);
+
         this.timeLeft = 30;  // Можно задать начальное значение
     }
 

@@ -4,13 +4,18 @@ class DisconnectButton extends HTMLElement {
         super();
 
         // Создаем Shadow DOM
-        this.attachShadow({ mode: 'open' });
+        const shadowRoot = this.attachShadow({ mode: 'open' });
+
+        // Добавление стилей
+        const link = document.createElement('link');
+        link.setAttribute('rel', 'stylesheet');
+        link.setAttribute('href', '/static/tinkoff_style.css');
+        shadowRoot.appendChild(link);
 
         // Создаем и стилизуем кнопку
         const button = document.createElement('button');
         button.innerHTML = '&#10006;';
         button.style.position = 'fixed';
-        button.classList.add('form-btn-submit');
         button.style.top = '10px';
         button.style.right = '10px';
 

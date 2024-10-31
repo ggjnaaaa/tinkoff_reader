@@ -1,22 +1,43 @@
-document.addEventListener("DOMContentLoaded", function () {
-    loadExpensesByDefaultPeriod('month')
+// Код jQuery для настройки столбцов с изменяемой шириной
+$(document).ready(function () {
+    $('#expensesTable').resizableColumns();
 });
 
-// Инициализация Flatpickr с выбором периода и русским языком
+document.addEventListener("DOMContentLoaded", function () {
+    loadExpensesByDefaultPeriod('month');
+});
+
+document.addEventListener("click", function (event) {
+    const periodOptions = document.getElementById("periodOptions");
+    const periodButton = document.getElementById("periodButton");
+    if (periodOptions && !periodOptions.contains(event.target) && event.target !== periodButton) {
+        periodOptions.style.display = 'none';
+    }
+});
+
 flatpickr("#dateRange", {
     mode: "range",
     dateFormat: "d.m.Y",
-    locale: "ru", // Устанавливаем русский язык
-    maxDate: "today", // Ограничиваем выбор по текущий день
-    onChange: function(selectedDates, dateStr, instance) {
-        // Обработка выбранного периода
+    locale: "ru",
+    maxDate: "today",
+    onChange: function(selectedDates) {
         if (selectedDates.length === 2) {
             const startUnixDate = toUnixTimestamp(formatDate(selectedDates[0]) + " 00:00:00:000");
             const endUnixDate = toUnixTimestamp(formatDate(selectedDates[1]) + " 23:59:59:999");
-            loadExpensesByPeriod(startUnixDate, endUnixDate)
+            loadExpensesByPeriod(startUnixDate, endUnixDate);
+            setPeriodLabel(`${formatDate(selectedDates[0])} - ${formatDate(selectedDates[1])}`);
         }
     }
 });
+
+function togglePeriodOptions() {
+    const options = document.getElementById('periodOptions');
+    options.style.display = options.style.display === 'block' ? 'none' : 'block';
+}
+
+function setPeriodLabel(label) {
+    document.getElementById("periodButton").innerText = label;
+}
 
 // Функция для форматирования даты в нужный вид
 function formatDate(date) {
@@ -50,22 +71,6 @@ function getTodayDate() {
 
     const formattedDate = `${month}.${day}.${year}`;
     return formattedDate;
-}
-
-// Функция для показа опций периода
-function showPeriodOptions() {
-    document.getElementById('periodOptions').style.display = 'block';
-}
-
-// Устанавливаем период и делаем запрос
-function setPeriod(period) {
-    loadExpenses(period);
-    document.getElementById('periodOptions').style.display = 'none';
-}
-
-function customDatePicker() {
-    // Показываем календарь для выбора периода
-    // Добавить календарь для выбора периода
 }
 
 function loadExpenses(data) {
@@ -142,18 +147,3 @@ function handleCategorySelect(selectElement) {
         document.getElementById("addCategorySection").style.display = "block";
     }
 }
-
-// Обработка формы добавления категории
-document.getElementById("addCategoryForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const categoryName = document.getElementById("categoryName").value;
-    const keywords = document.getElementById("keywords").value.split(',').map(word => word.trim());
-    await fetch("http://127.0.0.1:8000/tinkoff/expenses/categories/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ category_name: categoryName, keywords })
-    });
-    loadCategories();
-    document.getElementById("addCategorySection").style.display = "none";
-    document.getElementById("addCategoryForm").reset();
-});
