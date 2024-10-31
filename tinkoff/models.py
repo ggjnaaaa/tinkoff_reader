@@ -2,7 +2,7 @@
 
 from servises.browser_utils import PageType
 
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import BaseModel
 
 # 
@@ -21,14 +21,14 @@ class Expense(BaseModel):
     description: str
     category: Optional[str] = None
 
-class Category(BaseModel):
-    id: int
-    category_name: str
-    keywords: Optional[List[str]] = None
-
+# Модель для добавления новых категорий
 class CategoryRequest(BaseModel):
-    category_name: str
-    keywords: Optional[List[str]] = None
-
-class CategorySaveRequest(BaseModel):
     categories: List[str]
+
+# Модель для обновления ключевых слов
+class KeywordsUpdateRequest(BaseModel):
+    keywords: List[Dict[str, Optional[int]]]
+
+# Модель для удаления категорий
+class DeleteCategoryRequest(BaseModel):
+    ids: List[int]

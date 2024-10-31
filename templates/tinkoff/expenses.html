@@ -42,6 +42,14 @@
         <input id="dateRange" type="text" placeholder="Выберите период" />
     </div>
 
+    <!-- Кнопки добавления и удаления категорий -->
+    <div style="margin-top: 15px;">
+        <button onclick="openModal('addCategoryModal')">Добавить статью</button>
+        <button onclick="openModal('deleteCategoryModal')">Удалить статью</button>
+    </div>
+
+    <button onclick="saveKeywords()">Сохранить изменения</button>
+
     <table id="expensesTable" class="expenses-table resizable">
         <thead>
             <tr>
@@ -60,20 +68,26 @@
     <div id="addCategoryModal" class="modal" style="display:none;">
         <div class="modal-content">
             <span class="close" onclick="closeModal('addCategoryModal')">&times;</span>
-            <p>Внести новую статью?</p>
-            <input id="newCategoryInput" type="text" placeholder="Название новой статьи"/>
-            <button onclick="submitNewCategory()">Да</button>
-            <button onclick="closeModal('addCategoryModal')">Нет</button>
+            <p style="padding: 7px;">Добавить новые статьи</p>
+            <div id="categoryInputs" style="padding: 7px;">
+                <input type="text" class="category-input" placeholder="Название новой статьи" />
+            </div>
+            <button onclick="addCategoryInput()" style="padding: 7px;">Добавить еще</button>
+            <button onclick="submitNewCategories()" style="padding: 7px;">Сохранить</button>
+            <button onclick="closeModal('addCategoryModal')" style="padding: 7px;">Отмена</button>
         </div>
     </div>
 
-    <!-- Модальное окно для подтверждения удаления -->
+    <!-- Модальное окно для удаления категорий -->
     <div id="deleteCategoryModal" class="modal" style="display:none;">
         <div class="modal-content">
             <span class="close" onclick="closeModal('deleteCategoryModal')">&times;</span>
-            <p id="deleteCategoryText">Удалить статью?</p>
-            <button onclick="confirmDeleteCategory()">Да</button>
-            <button onclick="closeModal('deleteCategoryModal')">Нет</button>
+            <p style="padding: 7px;">Удалить выбранные статьи?</p>
+            <div id="deleteCategoryList" style="padding: 7px;">
+                <!-- Список категорий с чекбоксами будет добавлен здесь динамически -->
+            </div>
+            <button onclick="confirmDeleteCategories()" style="padding: 7px;">Удалить</button>
+            <button onclick="closeModal('deleteCategoryModal')" style="padding: 7px;">Отмена</button>
         </div>
     </div>
 {% endblock %}

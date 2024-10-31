@@ -15,7 +15,7 @@ from servises.browser_utils import (
     detect_page_type, 
     PageType
 )
-import config
+import tinkoff.config as config
 
 # Селекторы полей
 error_selector = 'p[automation-id="server-error"]'  # Объект с выводом ошибки

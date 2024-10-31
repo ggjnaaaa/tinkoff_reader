@@ -2,6 +2,7 @@
 
 # Библиотеки Python
 import time
+from typing import List
 
 # Сторонние библиотеки
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -17,13 +18,17 @@ from servises.general_utils import (
     wait_for_new_download, 
     expenses_redirect, 
     get_expense_categories_with_description,
-    get_expense_categories,
     get_json_expense_from_csv
 )
 from tinkoff.models import (
     CategoryRequest,
-    CategorySaveRequest
+    KeywordsUpdateRequest,
+    DeleteCategoryRequest
 )
+
+# Имитируем "БД" с помощью словарей
+categories_db = {1: "Продукты", 2: "Транспорт", 3: "Развлечения"}  # id: название статьи
+keywords_db = {}  # id: ключевые слова
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -61,26 +66,38 @@ def get_expenses(
     return get_json_expense_from_csv(file_path, categories_dict)
     
 
-# Эндпоинт для получения категорий
+# Эндпоинт для получения всех категорий
 @router.get("/tinkoff/expenses/categories/")
-def get_categories():
-    return get_expense_categories()
+async def get_categories():
+    return [{"id": cat_id, "category_name": name} for cat_id, name in categories_db.items()]
 
-# Эндпоинт для добавления новой категории
+
+# Эндпоинт для добавления категорий
 @router.post("/tinkoff/expenses/categories/")
-def add_category(category: CategoryRequest):
-    new_id = len(categories_db) + 1
-    new_category = {
-        "id": new_id,
-        "category_name": category.category_name,
-        "keywords": category.keywords or []
-    }
-    categories_db.append(new_category)
-    return {"message": "Категория добавлена успешно", "category": new_category}
+async def add_categories(request: CategoryRequest):
+    start_id = max(categories_db.keys()) + 1 if categories_db else 1
+    for category in request.categories:
+        categories_db[start_id] = category
+        start_id += 1
+    return {"message": "Категории добавлены"}
 
-# Эндпоинт для сохранения категорий для операций
-@router.post("/tinkoff/expenses/save-categories")
-def save_categories(data: CategorySaveRequest):
-    # Логика сохранения категории в базе данных для каждой операции (заглушка)
-    # Здесь происходит связывание расходов с категориями в БД
-    return {"message": "Категории сохранены успешно"}
+
+# Эндпоинт для удаления категорий
+@router.delete("/tinkoff/expenses/categories/")
+async def delete_category(request: DeleteCategoryRequest):
+    for cat_id in request.ids:
+        categories_db.pop(cat_id, None)
+        keywords_db = {k: v for k, v in keywords_db.items() if v != cat_id}  # Удаляем связанные ключевые слова
+    return {"message": "Категории удалены"}
+
+
+# Эндпоинт для сохранения ключевых слов
+@router.post("/tinkoff/expenses/keywords/")
+async def save_keywords(request: KeywordsUpdateRequest):
+    for item in request.keywords:
+        description = item.get("description")
+        category_id = item.get("category_id")
+        if not description or category_id not in categories_db:
+            raise HTTPException(status_code=400, detail="Некорректные данные")
+        keywords_db[description] = category_id  # Обновляем или добавляем
+    return {"message": "Ключевые слова сохранены"}
