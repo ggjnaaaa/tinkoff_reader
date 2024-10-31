@@ -6,8 +6,7 @@ import time
 # Сторонние библиотеки
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
-from selenium.webdriver.common.by import By
-from typing import List, Optional
+from typing import Optional
 from fastapi.templating import Jinja2Templates
 
 # Собственные модули
@@ -25,13 +24,6 @@ from tinkoff.models import (
     CategoryRequest,
     CategorySaveRequest
 )
-
-# База данных (условно)
-categories_db = [
-    {"id": 1, "category_name": "Продукты", "keywords": ["магазин", "продукты"]},
-    {"id": 2, "category_name": "Транспорт", "keywords": ["бензин", "транспорт"]},
-    # Дополнительно добавляем категории по необходимости
-]
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")

@@ -1,13 +1,21 @@
 ﻿# tinkoff_auth.py
 
 # Стандартные библиотеки Python
-import time
+import time, re
 
 # Сторонние библиотеки
 from fastapi import HTTPException
 
 # Модули проекта
-from servises.browser_utils import write_input, click_button, check_for_error_message, detect_page_type, PageType
+from servises.browser_utils import (
+    write_input, 
+    click_button, 
+    get_text,
+    check_for_error_message, 
+    detect_page_type, 
+    PageType
+)
+import config
 
 # Селекторы полей
 error_selector = 'p[automation-id="server-error"]'  # Объект с выводом ошибки
@@ -138,3 +146,15 @@ def close_login_via_sms_page(driver):
         return detect_page_type(driver)
     except Exception as e:
         raise Exception(f"Ошибка при закрытии входа через смс-код: {str(e)}")
+
+def get_user_name_from_otp_login():
+    greeting_text = get_text(config.driver, "[automation-id='form-title']")  # Берем текст из приветствия
+
+    # Регулярное выражение для поиска имени после "Здравствуйте, "
+    match = re.search(r"Здравствуйте, (.+)!", greeting_text)
+    if match:
+        user_name = match.group(1)  # Извлекаем первую группу, которая содержит имя
+    else:
+        user_name = 'Пользователь'
+
+    return user_name

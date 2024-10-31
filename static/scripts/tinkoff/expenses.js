@@ -107,5 +107,5 @@ function fetchCategories() {
 function handleCategorySelect(selectElement) {
     if (selectElement.value === "add") {
         document.getElementById("addCategorySection").style.display = "block";
-    }
+    }   
 }
