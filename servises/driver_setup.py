@@ -1,8 +1,7 @@
 ﻿# driver_setup.py
 
 # Стандартные библиотеки Python
-import time
-import threading
+import time, threading, os, shutil
 
 # Сторонние библиотеки
 from selenium import webdriver
@@ -22,7 +21,7 @@ def create_chrome_driver(path_to_chrome_profile, path_to_chrome_driver, timeout)
     # Настраиваем параметры Chrome
     chrome_options = Options()
     chrome_options.add_argument(path_to_chrome_profile)  # Путь к папке профиля
-    #chrome_options.add_argument("--headless")   # Включаем headless-режим (без открытия окна)
+    chrome_options.add_argument("--headless")   # Включаем headless-режим (без открытия окна)
     chrome_options.add_argument("--disable-gpu")  # Отключаем GPU (ускорение)
     chrome_options.add_argument("--window-size=1920x1080")  # Задаем размер окна для корректного рендеринга
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")  # Отключить автоматизацию
@@ -99,5 +98,19 @@ def close_browser_after_timeout(driver, timeout):
             print("Время ожидания истекло, закрываю браузер...")
             close_driver()
             stop_interaction_time()
+            clearing_downloads_directory()
             break
         time.sleep(5)  # Проверяем каждые 5 секунд
+
+# Очистка всей директории с загрузками
+def clearing_downloads_directory():
+    folder = config.DOWNLOAD_DIRECTORY
+    for filename in os.listdir(folder):
+        file_path = os.path.join(folder, filename)
+        try:
+            if os.path.isfile(file_path) or os.path.islink(file_path):
+                os.unlink(file_path)
+            elif os.path.isdir(file_path):
+                shutil.rmtree(file_path)
+        except:
+            pass

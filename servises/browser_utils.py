@@ -55,10 +55,10 @@ def detect_page_type(driver, retries=3):
     while attempt_current_page < retries:
         try:
             reset_interaction_time()
-            WebDriverWait(driver, 5).until(
+            WebDriverWait(driver, 8).until(
                 lambda d: d.execute_script('return document.readyState') == 'complete'
             )
-            WebDriverWait(driver, 5).until(
+            WebDriverWait(driver, 8).until(
                 lambda d: any(page_type.value in d.page_source for page_type in PageType)
             )
             for page_type in PageType:
@@ -128,3 +128,7 @@ def check_for_error_message(driver, error_selector, timeout=5):
         return error  # Если элемент найден, возвращаем text
     except TimeoutException:
         return None  # Если по таймауту элемент не найден, возвращаем False
+    
+def download_csv_from_expenses_page(driver):
+    click_button(driver, '[data-qa-id="export"]', timeout=5)
+    click_button(driver, '//span[text()="Выгрузить все операции в CSV"]', By.XPATH, timeout=5)

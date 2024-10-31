@@ -2,8 +2,6 @@
 
 # Библиотеки Python
 import time
-import csv
-import os
 
 # Сторонние библиотеки
 from fastapi import APIRouter, HTTPException, Query, Request
@@ -14,9 +12,15 @@ from fastapi.templating import Jinja2Templates
 
 # Собственные модули
 import tinkoff.config as config
-from servises.driver_setup import is_browser_active
-from servises.browser_utils import click_button, detect_page_type, PageType
-from servises.general_utils import wait_for_new_download, expenses_redirect_by_period
+from servises.driver_setup import is_browser_active, reset_interaction_time
+from servises.browser_utils import download_csv_from_expenses_page
+from servises.general_utils import (
+    wait_for_new_download, 
+    expenses_redirect, 
+    get_expense_categories_with_description,
+    get_expense_categories,
+    get_json_expense_from_csv
+)
 from tinkoff.models import (
     CategoryRequest,
     CategorySaveRequest
@@ -47,89 +51,28 @@ def get_expenses(
 ):
     if not is_browser_active():
         raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
-    
-    # Открываем страницу расходов в зависимости от периода
-    if rangeStart and rangeEnd:
-        config.driver.get(f'https://www.tbank.ru/events/feed/?rangeStart={rangeStart}&rangeEnd={rangeEnd}&preset=calendar')
     else:
-        expenses_redirect_by_period(period)
+        reset_interaction_time()
+    
+    if expenses_redirect(period, rangeStart, rangeEnd):  # Перенаправление на страницу по соответствующему периоду
+        time.sleep(1)  # Если было перенаправление, то небольшое ожидание
 
-    time.sleep(1)
-    if detect_page_type(config.driver) != PageType.EXPENSES:
-        raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
-
-    tmp_driver = config.driver
-    start_time = time.time()
-
-    click_button(tmp_driver, '[data-qa-id="export"]', timeout=5)
-    click_button(tmp_driver, '//span[text()="Выгрузить все операции в CSV"]', By.XPATH, timeout=5)
-
-    total_income = 0.0
-    total_expense = 0.0
-    categorized_expenses = []
+    start_time = time.time()  # Засекаем время, начиная с которого надо искать csv
+    download_csv_from_expenses_page(config.driver)  # Качаем csv
 
     # Ждём появления нового CSV-файла
     file_path = wait_for_new_download(start_time=start_time)
 
-    # Читаем данные из файла
-    with open(file_path, mode='r', encoding='windows-1251') as file:
-        reader = csv.DictReader(file, delimiter=';')
+    # Получаем словарь с категориями из бд
+    categories_dict = get_expense_categories_with_description()
 
-        for row in reader:
-            amount = float(row["Сумма операции"].replace(",", "."))
-            description = row["Описание"]
-            category = row["Категория"]
-            card = row["Номер карты"]
-            datetime_operation = row["Дата операции"]
-
-            # Определяем тип операции
-            if category == "Переводы" or "между счетами" in description:
-                transaction_type = "нейтральный"
-            elif amount > 0:
-                transaction_type = "доход"
-                total_income += amount
-            else:
-                transaction_type = "расход"
-                total_expense += abs(amount)
-
-            '''# Получаем или добавляем статью в БД
-            expense_category = expense_categories_db.get(description, "Не определено")
-            if expense_category == "Не определено":
-                # Логика для добавления статьи и шаблона в БД
-                expense_category = add_expense_category(description)'''
-
-            # Добавляем операцию в результат
-            categorized_expenses.append({
-                "date_time": datetime_operation,
-                "card_number": card,
-                "transaction_type": transaction_type,
-                "amount": abs(amount),
-                "description": description,
-                "category": 'не готово'#expense_category
-            })
-
-    # Удаляем скачанный файл после обработки
-    os.remove(file_path)
-
-    # Итоговый результат
-    result = {
-        "total_income": total_income,
-        "total_expense": total_expense,
-        "expenses": categorized_expenses
-    }
-
-    return result
+    return get_json_expense_from_csv(file_path, categories_dict)
+    
 
 # Эндпоинт для получения категорий
 @router.get("/tinkoff/expenses/categories/")
 def get_categories():
-    categories = []
-    for i in range(5):
-        categories.append({
-            "id": i,
-            "category_name": f"category{i+1}"
-        })
-    return categories
+    return get_expense_categories()
 
 # Эндпоинт для добавления новой категории
 @router.post("/tinkoff/expenses/categories/")

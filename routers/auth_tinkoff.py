@@ -36,7 +36,7 @@ def get_login_type(request: Request):
 
     try:
         tmp_driver.get(config.EXPENSES_URL)
-        detected_type = detect_page_type(tmp_driver)
+        detected_type = detect_page_type(tmp_driver, 5)
         if detected_type:
             if detected_type == PageType.LOGIN_SMS_CODE:
                 detected_type = close_login_via_sms_page(tmp_driver)
