@@ -11,8 +11,7 @@ from typing import Optional
 from fastapi.templating import Jinja2Templates
 
 # Собственные модули
-import tinkoff.config as config
-from utils.tinkoff.driver_setup import is_browser_active, reset_interaction_time
+from tinkoff.config import browser_instance as browser
 from utils.tinkoff.browser_utils import download_csv_from_expenses_page
 from utils.tinkoff.general_utils import (
     wait_for_new_download, 
@@ -47,16 +46,18 @@ async def get_expenses(
     rangeStart: Optional[str] = None,  # Необязательное начало периода
     rangeEnd: Optional[str] = None  # Необязательный конец периода
 ):
-    if not is_browser_active():
+    if not await  browser.is_browser_active() or not await  browser.is_page_active():
         raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
     else:
-        reset_interaction_time()
+        browser.reset_interaction_time()
     
-    if await expenses_redirect(period, rangeStart, rangeEnd):  # Перенаправление на страницу по соответствующему периоду
+    page = browser.page
+
+    if await expenses_redirect(page, period, rangeStart, rangeEnd):  # Перенаправление на страницу по соответствующему периоду
         time.sleep(1)  # Если было перенаправление, то небольшое ожидание
 
     start_time = time.time()  # Засекаем время, начиная с которого надо искать csv
-    await download_csv_from_expenses_page(config.page)  # Качаем csv
+    await download_csv_from_expenses_page(page)  # Качаем csv
 
     # Ждём появления нового CSV-файла
     file_path = await wait_for_new_download(start_time=start_time)

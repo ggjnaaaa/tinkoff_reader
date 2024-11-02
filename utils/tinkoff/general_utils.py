@@ -1,10 +1,9 @@
 # general_utils.py
 
 # Стандартные библиотеки Python
-import os
-import csv
-import time
-import asyncio
+import os, csv, time, asyncio
+
+# Сторонние библиотеки
 from fastapi import HTTPException
 import aiofiles
 from playwright.async_api import Page

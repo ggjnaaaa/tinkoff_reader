@@ -9,9 +9,16 @@ from dotenv import load_dotenv
 from fastapi.templating import Jinja2Templates
 
 # Собственные модули
-import tinkoff.config as config
 from tinkoff.models import LoginResponse
-from utils.tinkoff.driver_setup import create_browser_context, close_context, is_browser_active, reset_interaction_time
+import tinkoff.config as config
+from tinkoff.config import (
+    timer_selector, 
+    resend_sms_button_selector, 
+    cancel_button_selector, 
+    browser_instance as browser
+)
+
+from utils.tinkoff.browser_manager import BrowserManager
 from utils.tinkoff.tinkoff_auth import paged_login, close_login_via_sms_page, get_user_name_from_otp_login
 from utils.tinkoff.browser_utils import get_text, detect_page_type, PageType, click_button
 
@@ -21,64 +28,57 @@ templates = Jinja2Templates(directory="templates")
 # Вход в тинькофф
 @router.get("/tinkoff/")
 async def get_login_type(request: Request):
-    tmp_driver = config.page
+    global browser
+
     load_dotenv()  # Загрузка .env файла
     config.DOWNLOAD_DIRECTORY = os.getenv("DOWNLOAD_DIRECTORY")
     config.PATH_TO_CHROME_PROFILE = os.getenv("PATH_TO_CHROME_PROFILE")
 
     # Открытие браузера если закрыт, если открыт обновление времени выключения
-    if not is_browser_active():
-        config.page = await create_browser_context()
-        tmp_driver = config.page
+    if browser and await browser.is_page_active():
+        browser.reset_interaction_time()
+    elif browser and await browser.is_browser_active():
+        browser.create_context_and_page()
     else:
-        reset_interaction_time()
+        browser = BrowserManager(config.PATH_TO_CHROME_PROFILE,
+                                 config.DOWNLOAD_DIRECTORY,
+                                 config.BROWSER_TIMEOUT)
+        await browser.create_context_and_page()
 
     try:
-        print(-1)
-        print(tmp_driver)
-        print(config.browser)
-        print(config.context)
-        print(config.page)
-        await tmp_driver.goto(config.EXPENSES_URL)  # Переход на страницу расходов
-        print(1)
-        detected_type = await detect_page_type(tmp_driver, 5)  # Асинхронное определение типа страницы
-        print(2)
+        await browser.page.goto(config.EXPENSES_URL)  # Переход на страницу расходов
+        detected_type = await detect_page_type(browser, 20)  # Асинхронное определение типа страницы
 
         if detected_type:
-            print(3)
             # Отмена входа по смс, переход на вход через номер телефона
             if detected_type == PageType.LOGIN_SMS_CODE:
-                print(4)
-                detected_type = await close_login_via_sms_page(tmp_driver)
-                print(5)
+                detected_type = await close_login_via_sms_page(browser)
 
             # Получаем путь к нужному шаблону
             page_path = detected_type.template_path()
-            print(6)
 
             # Вход по временному паролю
             if detected_type == PageType.LOGIN_OTP:
-                print(7)
-                return templates.TemplateResponse(page_path, {"request": request, "name": get_user_name_from_otp_login()})
+                return templates.TemplateResponse(page_path, {"request": request, "name": get_user_name_from_otp_login(browser)})
             print(8)
 
             return templates.TemplateResponse(page_path, {"request": request})
         else:
-            await close_context()
+            await browser.close_context_and_page()
             raise HTTPException(status_code=400, detail="Не удалось определить тип страницы.")
     except Exception as e:
         print(e)
-        await close_context()
+        await browser.close_context_and_page()
         raise HTTPException(status_code=500, detail=str(e))
     
 # Обработка всех страниц входа
 @router.post("/tinkoff/login/", response_model=LoginResponse)
 async def login(request: Request, data: str = Body(...)):
-    if not config.page or not is_browser_active():
+    if not await browser.is_page_active():
         raise HTTPException(status_code=440, detail="Сессия истекла. Пожалуйста, войдите заново.")
     
     try:
-        result = await paged_login(config.page, data)  # Отправка данных, получает тип следующей страницы
+        result = await paged_login(browser, data)  # Отправка данных, получает тип следующей страницы
         if result:
             return LoginResponse(status="success", next_page_type=result) 
         return LoginResponse(status="failed", next_page_type=None)
@@ -95,17 +95,17 @@ async def next_page(request: Request, step: str | None = Query(default=None)):
         except ValueError:
             raise HTTPException(status_code=400, detail="Неверный тип шага")
     else:
-        page_type = await detect_page_type(config.page)
+        page_type = await detect_page_type(browser)
 
      # Отмена входа по смс, переход на вход через номер телефона
     if page_type == PageType.LOGIN_SMS_CODE:
-        page_type = await close_login_via_sms_page(config.page)
+        page_type = await close_login_via_sms_page(browser)
 
     # Получаем путь к нужному шаблону
     template_path = page_type.template_path()
 
     if page_type == PageType.LOGIN_OTP:
-        return templates.TemplateResponse(template_path, {"request": request, "name": get_user_name_from_otp_login()})
+        return templates.TemplateResponse(template_path, {"request": request, "name": get_user_name_from_otp_login(browser)})
     
     return templates.TemplateResponse(template_path, {"request": request})
 
@@ -114,7 +114,7 @@ async def next_page(request: Request, step: str | None = Query(default=None)):
 async def get_sms_timer():
     try:
         # Получаем оставшееся время в секундах
-        time_left = await get_text(config.page, 'span[automation-id="left-time"]')
+        time_left = await get_text(browser, timer_selector)
         return {"time_left": time_left}
 
     except Exception as e:
@@ -126,7 +126,7 @@ async def get_sms_timer():
 async def resend_sms():
     try:
         # Нажимаем на кнопку повторной отправки
-        await click_button(config.page, 'button[automation-id="resend-button"]')
+        await click_button(config.page, resend_sms_button_selector)
         return {"status": "success", "message": "SMS успешно отправлено"}
 
     except Exception as e:
@@ -138,8 +138,8 @@ async def resend_sms():
 async def cancel_otp():
     try:
         # Нажимаем на кнопку отмены и возвращаем тип следующей страницы
-        await click_button(config.page, 'button[automation-id="cancel-button"]')
-        next_page_type = await detect_page_type(config.page)
+        await click_button(config.page, cancel_button_selector)
+        next_page_type = await detect_page_type(browser)
         if next_page_type:
             return LoginResponse(status="success", next_page_type=next_page_type)
         return LoginResponse(status="success", next_page_type=None)

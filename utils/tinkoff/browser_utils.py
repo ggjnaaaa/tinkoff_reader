@@ -2,12 +2,15 @@
 
 # Стандартные библиотеки Python
 from enum import Enum
+import asyncio
 
-# Импорты Playwright
+# Сторонние библиотеки
 from playwright.async_api import Page, expect, TimeoutError as PlaywrightTimeoutError
+from fastapi import HTTPException
 
 # Собственные модули
-from utils.tinkoff.driver_setup import reset_interaction_time
+from utils.tinkoff.browser_manager import BrowserManager
+from tinkoff.config import submit_button_selector, error_selector
 
 # Типы страниц при входе на сайт
 class PageType(Enum):
@@ -39,30 +42,50 @@ class PageType(Enum):
         }
         return paths.get(self)
 
-# Функция для определения типа страницы
-async def detect_page_type(page: Page, retries=3):
+async def detect_page_type(browser: BrowserManager, retries: int = 3):
+    """Определяет тип страницы, основываясь на содержимом."""
     attempt_current_page = 0
+    last_except = ''
     while attempt_current_page < retries:
         try:
-            reset_interaction_time()
-            await page.wait_for_load_state('networkidle')
-            content = await page.content()
-            for page_type in PageType:
-                if page_type.value in content:
-                    return page_type
-            attempt_current_page += 1
-        except PlaywrightTimeoutError:
-            return None
+            browser.reset_interaction_time()  # Если у тебя есть эта функция, сбрасываем время взаимодействия
+            page = browser.page 
+
+            # Ожидаем, что страница полностью загрузится
+            await page.wait_for_load_state('networkidle', timeout=16000)  # Ожидание окончания сетевой активности
+
+            if await page.is_visible('body'):
+                # Пробуем получить содержимое страницы
+                try:
+                    content = await page.content()  # Получаем HTML-код страницы
+                except Exception as e:
+                    print(f"Не удалось получить контент страницы: {e}")
+                    await asyncio.sleep(1)  # Небольшая задержка перед повторной попыткой
+                    attempt_current_page += 1
+                    continue  # Переходим к следующей попытке в цикле
+
+                # Проверяем содержимое на соответствие типам страниц
+                for page_type in PageType:
+                    if page_type.value in content:
+                        return page_type  # Возвращаем тип страницы, если найден
+        except Exception as e:  # Ловим все исключения
+            last_except = e
+        finally:
+            attempt_current_page += 1  # Увеличиваем счётчик попыток
+    
+    print(f"Ошибка при определении типа страницы: {last_except}")
+    return None
 
 # Общая асинхронная функция для получения элемента с обработкой ошибок
-async def get_element(page: Page, selector: str, timeout: int = 30000):
+async def get_element(page: Page, selector: str, timeout: int = 5):
     """Находит элемент на странице с заданным селектором и ждёт его видимости в течение заданного времени."""
+    ms_timeout = timeout * 1000
     el = page.locator(selector)
     await expect(el).to_be_visible(timeout=timeout)  # Ожидаем, что элемент станет видимым в течение timeout
     return el
 
 # Асинхронная функция записи информации в поле ввода
-async def write_input(page: Page, element_selector, input_text, timeout=1):
+async def write_input(page: Page, element_selector: str, input_text: str, timeout: int = 5):
     try:
         input_element = await get_element(page, element_selector, timeout=timeout)
         await input_element.fill(input_text)
@@ -70,7 +93,7 @@ async def write_input(page: Page, element_selector, input_text, timeout=1):
         raise Exception(f"Произошла ошибка при вводе данных: {str(e)}") from e
 
 # Асинхронная функция нажатия на кнопку
-async def click_button(page: Page, button_selector, timeout=1):
+async def click_button(page: Page, button_selector: str, timeout: int = 5):
     try:
         submit_button = await get_element(page, button_selector, timeout)
         await submit_button.click()
@@ -78,18 +101,32 @@ async def click_button(page: Page, button_selector, timeout=1):
         raise Exception(f"Произошла ошибка при клике на элемент с селектором {button_selector}: {str(e)}") from e
 
 # Асинхронная функция получения текста
-async def get_text(page: Page, text_selector, timeout=5):
+async def get_text(page: Page, text_selector: str, timeout: int = 5):
     try:
         element = await get_element(page, text_selector, timeout=timeout)
         return await element.inner_text()
     except Exception:
         raise
 
-# Асинхронная функция для проверки наличия сообщения об ошибке
-async def check_for_error_message(page: Page, error_selector, timeout=5):
+async def input_and_click_submit_with_check_errors(browser: BrowserManager, input_selector: str, input: str, timeout: int = 5):
     try:
-        reset_interaction_time()
-        error = await get_text(page, error_selector, timeout=timeout)
+        page = browser.page
+
+        # Ввод пароля
+        await write_input(page, input_selector, input)
+        await click_button(page, submit_button_selector)
+        error_message = await check_for_error_message(browser)
+
+        if error_message:
+            raise HTTPException(status_code=400, detail=error_message)
+    except:
+        raise
+
+# Асинхронная функция для проверки наличия сообщения об ошибке
+async def check_for_error_message(browser: BrowserManager, timeout=5):
+    try:
+        browser.reset_interaction_time()
+        error = await get_text(browser.page, error_selector, timeout=timeout)
         return error
     except Exception:
         return None
