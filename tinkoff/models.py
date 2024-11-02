@@ -1,6 +1,6 @@
 # models.py
 
-from servises.browser_utils import PageType
+from utils.tinkoff.browser_utils import PageType
 
 from typing import List, Optional, Dict
 from pydantic import BaseModel

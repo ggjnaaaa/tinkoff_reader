@@ -7,7 +7,7 @@ import time, re
 from fastapi import HTTPException
 
 # Модули проекта
-from servises.browser_utils import (
+from utils.tinkoff.browser_utils import (
     write_input, 
     click_button, 
     get_text,
@@ -31,19 +31,19 @@ pin_code_input_selector = 'input[automation-id="pin-code-input-0"]'  # Инпу�
 password_input_selector = 'input[automation-id="password-input"]'  # Инпут пароля
 otp_input_selector = 'input[automation-id="otp-input"]'  # Инпут временного пароля
 
-def paged_login(driver, user_input, retries=3):
-    detected_page = detect_page_type(driver)
+async def paged_login(driver, user_input, retries=3):
+    detected_page = await detect_page_type(driver)
     print(f"тип нынешней страницы: {detected_page}")
 
     if detected_page:
         try:
-            route_login_by_page_type(driver, detected_page, user_input)
+            await route_login_by_page_type(driver, detected_page, user_input)
         except:
             raise
         
         attempt_new_page = 1
         while attempt_new_page <= retries:
-            new_detected_page = detect_page_type(driver)
+            new_detected_page = await detect_page_type(driver)
             print(f"тип следующей страницы: {new_detected_page}")
             if new_detected_page and new_detected_page != detected_page:
                 return new_detected_page
@@ -55,27 +55,28 @@ def paged_login(driver, user_input, retries=3):
         print(f"Не удалось определить тип страницы.")
     raise HTTPException(status_code=500, detail="Ошибка входа в тинькофф. Пожалуйста, войдите заново.")
 
-def route_login_by_page_type(driver, detected_page, user_input):
+async def route_login_by_page_type(driver, detected_page, user_input):
     try:
         if detected_page == PageType.LOGIN_PHONE:
-            phone_page(driver=driver, phone_number=user_input)
+            await phone_page(driver=driver, phone_number=user_input)
         elif detected_page == PageType.LOGIN_INPUT_SMS_CODE:
-            sms_page(driver=driver, sms_code=user_input)
+            await sms_page(driver=driver, sms_code=user_input)
         elif detected_page == PageType.LOGIN_PASSWORD:
-            password_page(driver=driver, password=user_input)
+            await password_page(driver=driver, password=user_input)
         elif detected_page == PageType.LOGIN_CREATE_OTP:
-            create_otp_page(driver=driver, otp_code=user_input)
+            await create_otp_page(driver=driver, otp_code=user_input)
         elif detected_page == PageType.LOGIN_OTP:
-            otp_page(driver=driver, otp_code=user_input)
+            await otp_page(driver=driver, otp_code=user_input)
     except:
         raise
     
-def phone_page(driver, phone_number):
+async def phone_page(driver, phone_number):
     try:
         # Ввод номера телефона
-        write_input(driver, phone_input_selector, phone_number)
-        click_button(driver, submit_button_selector)
-        error_message = check_for_error_message(driver=driver, error_selector=error_selector)
+        await write_input(driver, phone_input_selector, phone_number)
+        await click_button(driver, submit_button_selector)
+        error_message = await check_for_error_message(driver=driver, error_selector=error_selector)
+
         if error_message:
             raise HTTPException(status_code=400, detail=error_message)
     except HTTPException:
@@ -83,12 +84,13 @@ def phone_page(driver, phone_number):
     except Exception as e:
         raise Exception(f"Ошибка на странице ввода номера телефона: {str(e)}")
 
-def sms_page(driver, sms_code):
+async def sms_page(driver, sms_code):
     try:
         # Ввод кода из СМС
         while True:
-            write_input(driver, sms_code_input_selector, sms_code)
-            error_message = check_for_error_message(driver=driver, error_selector=error_selector)
+            await write_input(driver, sms_code_input_selector, sms_code)
+            error_message = await check_for_error_message(driver=driver, error_selector=error_selector)
+
             if not error_message:
                 break
             else:
@@ -98,12 +100,13 @@ def sms_page(driver, sms_code):
     except Exception as e:
         raise Exception(f"Ошибка при вводе смс-кода: {str(e)}")
     
-def password_page(driver, password):
+async def password_page(driver, password):
     try:
         # Ввод пароля
-        write_input(driver, password_input_selector, password)
-        click_button(driver, submit_button_selector)
-        error_message = check_for_error_message(driver=driver, error_selector=error_selector)
+        await write_input(driver, password_input_selector, password)
+        await click_button(driver, submit_button_selector)
+        error_message = await check_for_error_message(driver=driver, error_selector=error_selector)
+
         if error_message:
             raise HTTPException(status_code=400, detail=error_message)
     except HTTPException:
@@ -111,12 +114,12 @@ def password_page(driver, password):
     except Exception as e:
         raise Exception(f"Ошибка при вводе пароля: {str(e)}")
     
-def create_otp_page(driver, otp_code):
+async def create_otp_page(driver, otp_code):
     try:
         # Ввод временного кода
-        write_input(driver, pin_code_input_selector, otp_code)
-        click_button(driver, submit_button_selector)
-        error_message = check_for_error_message(driver=driver, error_selector=error_selector)
+        await write_input(driver, pin_code_input_selector, otp_code)
+        await click_button(driver, submit_button_selector)
+        error_message = await check_for_error_message(driver=driver, error_selector=error_selector)
 
         if error_message:
             raise HTTPException(status_code=400, detail=error_message)
@@ -125,12 +128,12 @@ def create_otp_page(driver, otp_code):
     except Exception as e:
         raise Exception(f"Ошибка при создании нового временного кода: {str(e)}")
     
-def otp_page(driver, otp_code):
+async def otp_page(driver, otp_code):
     try:
         # Ввод временного кода
-        write_input(driver, pin_code_input_selector, otp_code)
-        error_message = check_for_error_message(driver=driver, error_selector=error_selector)
-        print(error_message)
+        await write_input(driver, pin_code_input_selector, otp_code)
+        error_message = await check_for_error_message(driver=driver, error_selector=error_selector)
+
         if error_message:
             raise HTTPException(status_code=400, detail=error_message)
     except HTTPException:
@@ -138,17 +141,17 @@ def otp_page(driver, otp_code):
     except Exception as e:
         raise Exception(f"Ошибка при вводе временного кода: {str(e)}")
 
-def close_login_via_sms_page(driver):
+async def close_login_via_sms_page(driver):
     try:
         # Отмена входа по смс
-        click_button(driver, reset_button_selector)
+        await click_button(driver, reset_button_selector)
         time.sleep(1)
-        return detect_page_type(driver)
+        return await detect_page_type(driver)
     except Exception as e:
         raise Exception(f"Ошибка при закрытии входа через смс-код: {str(e)}")
 
-def get_user_name_from_otp_login():
-    greeting_text = get_text(config.driver, "[automation-id='form-title']")  # Берем текст из приветствия
+async def get_user_name_from_otp_login():
+    greeting_text = await get_text(config.page, "[automation-id='form-title']")  # Берем текст из приветствия
 
     # Регулярное выражение для поиска имени после "Здравствуйте, "
     match = re.search(r"Здравствуйте, (.+)!", greeting_text)

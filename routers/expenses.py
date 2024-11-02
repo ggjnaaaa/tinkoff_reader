@@ -12,9 +12,9 @@ from fastapi.templating import Jinja2Templates
 
 # Собственные модули
 import tinkoff.config as config
-from servises.driver_setup import is_browser_active, reset_interaction_time
-from servises.browser_utils import download_csv_from_expenses_page
-from servises.general_utils import (
+from utils.tinkoff.driver_setup import is_browser_active, reset_interaction_time
+from utils.tinkoff.browser_utils import download_csv_from_expenses_page
+from utils.tinkoff.general_utils import (
     wait_for_new_download, 
     expenses_redirect, 
     get_expense_categories_with_description,
@@ -36,12 +36,13 @@ templates = Jinja2Templates(directory="templates")
 # Эндпоинт для отображения страницы расходов
 @router.get("/tinkoff/expenses/page", response_class=HTMLResponse)
 async def show_expenses_page(request: Request):
+    print("ПЕРЕХОД НА РАСХОДЫ")
     # Передаем начальные параметры для рендеринга шаблона
     return templates.TemplateResponse("tinkoff/expenses.html", {"request": request})
 
 # Эндпоинт для получения расходов за выбранный период
 @router.get("/tinkoff/expenses/")
-def get_expenses( 
+async def get_expenses( 
     period: Optional[str] = Query("month"),  # Необязательный период
     rangeStart: Optional[str] = None,  # Необязательное начало периода
     rangeEnd: Optional[str] = None  # Необязательный конец периода
@@ -51,19 +52,19 @@ def get_expenses(
     else:
         reset_interaction_time()
     
-    if expenses_redirect(period, rangeStart, rangeEnd):  # Перенаправление на страницу по соответствующему периоду
+    if await expenses_redirect(period, rangeStart, rangeEnd):  # Перенаправление на страницу по соответствующему периоду
         time.sleep(1)  # Если было перенаправление, то небольшое ожидание
 
     start_time = time.time()  # Засекаем время, начиная с которого надо искать csv
-    download_csv_from_expenses_page(config.driver)  # Качаем csv
+    await download_csv_from_expenses_page(config.page)  # Качаем csv
 
     # Ждём появления нового CSV-файла
-    file_path = wait_for_new_download(start_time=start_time)
+    file_path = await wait_for_new_download(start_time=start_time)
 
     # Получаем словарь с категориями из бд
-    categories_dict = get_expense_categories_with_description()
+    categories_dict = await get_expense_categories_with_description()
 
-    return get_json_expense_from_csv(file_path, categories_dict)
+    return await get_json_expense_from_csv(file_path, categories_dict)
     
 
 # Эндпоинт для получения всех категорий

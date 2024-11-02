@@ -1,14 +1,14 @@
 ### Сторонние библиотеки:
-pip install webdriver-manager  
-pip install selenium  
+pip install pytest-playwright
 pip install python-dotenv  
 pip install uvicorn  
 pip install fastapi  
 pip install psycopg2  
 pip install sqlalchemy  
 pip install jinja2  
+pip install aiofiles 
 
-
+playwright install chromium (чтобы установить драйвер для playwright, выполнить 1 раз)
 
 ### 09.10.24
 Добавлено:
