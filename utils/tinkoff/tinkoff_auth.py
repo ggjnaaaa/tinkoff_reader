@@ -8,22 +8,21 @@ from fastapi import HTTPException
 
 # Модули проекта
 from utils.tinkoff.browser_utils import (
-    input_and_click_submit_with_check_errors,
     write_input, 
     click_button, 
     get_text,
-    check_for_error_message, 
     detect_page_type, 
     PageType
 )
 from utils.tinkoff.browser_manager import BrowserManager
 from tinkoff.config import (
+    submit_button_selector,
+    error_selector,
     reset_button_selector,
     phone_input_selector,
     sms_code_input_selector,
     pin_code_input_selector,
     password_input_selector,
-    otp_input_selector
 )
 
 
@@ -44,9 +43,11 @@ async def paged_login(browser: BrowserManager, user_input, retries=3):
             if new_detected_page and new_detected_page != detected_page:
                 return new_detected_page
             else:
+                if not browser or not browser.page:
+                    raise HTTPException(status_code=500, detail="Ошибка входа в тинькофф. Пожалуйста, войдите заново.")
                 attempt_new_page += 1
                 print(f"Не удалось определить тип следующей страницы. Осталось попыток: {retries - attempt_new_page + 1}")
-                time.sleep(1)
+                time.sleep(3)
     else:
         print(f"Не удалось определить тип страницы.")
     raise HTTPException(status_code=500, detail="Ошибка входа в тинькофф. Пожалуйста, войдите заново.")
@@ -100,7 +101,14 @@ async def password_page(browser: BrowserManager, password):
     
 async def create_otp_page(browser: BrowserManager, otp_code):
     try:
-        await input_and_click_submit_with_check_errors(browser, pin_code_input_selector, otp_code)
+        for i in range(4):
+            selector = pin_code_input_selector.replace("0", str(i))
+            await write_input(browser.page, selector, otp_code[i])
+        await click_button(browser.page, submit_button_selector)
+        error_message = await check_for_error_message(browser)
+
+        if error_message:
+            raise HTTPException(status_code=400, detail=error_message)
     except HTTPException:
         raise
     except Exception as e:
@@ -108,8 +116,9 @@ async def create_otp_page(browser: BrowserManager, otp_code):
     
 async def otp_page(browser: BrowserManager, otp_code: str):
     try:
-        # Ввод временного кода
-        await write_input(browser.page, pin_code_input_selector, otp_code)
+        for i in range(4):
+            selector = pin_code_input_selector.replace("0", str(i))
+            await write_input(browser.page, selector, otp_code[i])
         error_message = await check_for_error_message(browser)
 
         if error_message:
@@ -139,3 +148,26 @@ async def get_user_name_from_otp_login(browser: BrowserManager):
         user_name = 'Пользователь'
 
     return user_name
+
+async def input_and_click_submit_with_check_errors(browser: BrowserManager, input_selector: str, user_input: str, timeout: int = 5):
+    try:
+        page = browser.page
+
+        # Ввод пароля
+        await write_input(page, input_selector, user_input, timeout)
+        await click_button(page, submit_button_selector, timeout)
+        error_message = await check_for_error_message(browser)
+
+        if error_message:
+            raise HTTPException(status_code=400, detail=error_message)
+    except:
+        raise
+
+# Асинхронная функция для проверки наличия сообщения об ошибке
+async def check_for_error_message(browser: BrowserManager, timeout=5):
+    try:
+        browser.reset_interaction_time()
+        error = await get_text(browser.page, error_selector, timeout=timeout)
+        return error
+    except Exception:
+        return None

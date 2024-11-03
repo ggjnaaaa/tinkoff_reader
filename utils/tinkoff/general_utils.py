@@ -11,8 +11,8 @@ from playwright.async_api import Page
 # Собственные модули
 import tinkoff.config as config
 
-# Ожидает загрузки нового файла с указанным расширением, созданного после времени `start_time`
-async def wait_for_new_download(filename_extension=".csv", start_time=None, timeout=10):
+# Ожидает загрузки первого файла, созданного после времени `start_time`
+async def wait_for_new_download(start_time=None, timeout=10):
     if not start_time:
         start_time = time.time()
 
@@ -21,11 +21,11 @@ async def wait_for_new_download(filename_extension=".csv", start_time=None, time
         # Проверяем файлы в директории загрузок
         for filename in os.listdir(config.DOWNLOAD_DIRECTORY):
             file_path = os.path.join(config.DOWNLOAD_DIRECTORY, filename)
-            # Проверяем, что файл имеет нужное расширение и был создан после `start_time`
-            if filename.endswith(filename_extension) and os.path.getmtime(file_path) > start_time:
-                return file_path
+            # Проверяем, что файл был создан после `start_time`
+            if os.path.getmtime(file_path) > start_time:
+                return file_path  # Возвращаем путь к файлу, если он новый
         await asyncio.sleep(0.5)  # Ждём, чтобы не перегружать процессор
-    raise TimeoutError(f"Файл с расширением {filename_extension} не был загружен в течение {timeout} секунд.")
+    raise TimeoutError(f"Новый файл не был загружен в течение {timeout} секунд.")
 
 async def expenses_redirect(page: Page, period=None, rangeStart=None, rangeEnd=None):
     # Открываем страницу расходов в зависимости от периода
@@ -33,6 +33,7 @@ async def expenses_redirect(page: Page, period=None, rangeStart=None, rangeEnd=N
         new_url = f'https://www.tbank.ru/events/feed/?rangeStart={rangeStart}&rangeEnd={rangeEnd}&preset=calendar'
         if new_url != page.url:
             await page.goto(new_url)
+            await page.wait_for_url(new_url)  # Ожидаем, пока URL не изменится на нужный
             return True
         return False
     elif period:
@@ -56,6 +57,7 @@ async def expenses_redirect_by_period(page: Page, period):
 
     if new_url != page.url:
         await page.goto(new_url)
+        await page.wait_for_url(new_url)  # Ожидаем, пока URL не изменится на нужный
         return True
     return False
 

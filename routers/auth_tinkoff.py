@@ -1,7 +1,7 @@
 # auth_tinkoff.py
 
 # Стандартные библиотеки Python
-import os
+import os, asyncio
 
 # Сторонние библиотеки
 from fastapi import APIRouter, HTTPException, Body, Request, Query
@@ -38,7 +38,7 @@ async def get_login_type(request: Request):
     if browser and await browser.is_page_active():
         browser.reset_interaction_time()
     elif browser and await browser.is_browser_active():
-        browser.create_context_and_page()
+        await browser.create_context_and_page()
     else:
         browser = BrowserManager(config.PATH_TO_CHROME_PROFILE,
                                  config.DOWNLOAD_DIRECTORY,
@@ -47,7 +47,7 @@ async def get_login_type(request: Request):
 
     try:
         await browser.page.goto(config.EXPENSES_URL)  # Переход на страницу расходов
-        detected_type = await detect_page_type(browser, 20)  # Асинхронное определение типа страницы
+        detected_type = await detect_page_type(browser, 5)  # Асинхронное определение типа страницы
 
         if detected_type:
             # Отмена входа по смс, переход на вход через номер телефона
@@ -57,10 +57,11 @@ async def get_login_type(request: Request):
             # Получаем путь к нужному шаблону
             page_path = detected_type.template_path()
 
+            await save_browser_cache()
+
             # Вход по временному паролю
             if detected_type == PageType.LOGIN_OTP:
-                return templates.TemplateResponse(page_path, {"request": request, "name": get_user_name_from_otp_login(browser)})
-            print(8)
+                return templates.TemplateResponse(page_path, {"request": request, "name": await get_user_name_from_otp_login(browser)})
 
             return templates.TemplateResponse(page_path, {"request": request})
         else:
@@ -78,7 +79,8 @@ async def login(request: Request, data: str = Body(...)):
         raise HTTPException(status_code=440, detail="Сессия истекла. Пожалуйста, войдите заново.")
     
     try:
-        result = await paged_login(browser, data)  # Отправка данных, получает тип следующей страницы
+        result = await paged_login(browser, data, 10)  # Отправка данных, получает тип следующей страницы
+        await save_browser_cache()
         if result:
             return LoginResponse(status="success", next_page_type=result) 
         return LoginResponse(status="failed", next_page_type=None)
@@ -95,7 +97,7 @@ async def next_page(request: Request, step: str | None = Query(default=None)):
         except ValueError:
             raise HTTPException(status_code=400, detail="Неверный тип шага")
     else:
-        page_type = await detect_page_type(browser)
+        page_type = await detect_page_type(browser, 5)
 
      # Отмена входа по смс, переход на вход через номер телефона
     if page_type == PageType.LOGIN_SMS_CODE:
@@ -105,7 +107,7 @@ async def next_page(request: Request, step: str | None = Query(default=None)):
     template_path = page_type.template_path()
 
     if page_type == PageType.LOGIN_OTP:
-        return templates.TemplateResponse(template_path, {"request": request, "name": get_user_name_from_otp_login(browser)})
+        return templates.TemplateResponse(template_path, {"request": request, "name": await get_user_name_from_otp_login(browser)})
     
     return templates.TemplateResponse(template_path, {"request": request})
 
@@ -113,8 +115,9 @@ async def next_page(request: Request, step: str | None = Query(default=None)):
 @router.get("/tinkoff/get_sms_timer/")
 async def get_sms_timer():
     try:
+        await asyncio.sleep(1)
         # Получаем оставшееся время в секундах
-        time_left = await get_text(browser, timer_selector)
+        time_left = await get_text(browser.page, timer_selector)
         return {"time_left": time_left}
 
     except Exception as e:
@@ -126,7 +129,8 @@ async def get_sms_timer():
 async def resend_sms():
     try:
         # Нажимаем на кнопку повторной отправки
-        await click_button(config.page, resend_sms_button_selector)
+        await click_button(browser.page, resend_sms_button_selector)
+        await save_browser_cache()
         return {"status": "success", "message": "SMS успешно отправлено"}
 
     except Exception as e:
@@ -138,8 +142,9 @@ async def resend_sms():
 async def cancel_otp():
     try:
         # Нажимаем на кнопку отмены и возвращаем тип следующей страницы
-        await click_button(config.page, cancel_button_selector)
+        await click_button(browser.page, cancel_button_selector)
         next_page_type = await detect_page_type(browser)
+        await save_browser_cache()
         if next_page_type:
             return LoginResponse(status="success", next_page_type=next_page_type)
         return LoginResponse(status="success", next_page_type=None)
@@ -147,3 +152,10 @@ async def cancel_otp():
     except Exception as e:
         print(f"Ошибка при нажатии на кнопку: {e}")
         raise HTTPException(status_code=500, detail="Не удалось отменить вход по временному паролю.")
+
+def get_browser():
+    return browser
+
+async def save_browser_cache():
+    if browser:
+        await browser.save_browser_cache()
