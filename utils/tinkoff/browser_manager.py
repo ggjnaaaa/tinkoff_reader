@@ -22,7 +22,7 @@ class BrowserManager:
         if self.browser is None:
             play = await async_playwright().start()
             self.browser = await play.chromium.launch(
-                headless=False,
+                headless=True,
                 args=["--start-maximized", '--disable-blink-features=AutomationControlled'],
                 downloads_path = self.download_dir
             )
@@ -40,7 +40,6 @@ class BrowserManager:
             
             # Создаем контекст
             self.context = await self.browser.new_context(
-                viewport={'width': 1920, 'height': 1080},
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36",
                 storage_state=storage_state_file,
                 accept_downloads=True,  # Включаем возможность загрузки
@@ -59,14 +58,18 @@ class BrowserManager:
     async def close_context_and_page(self):
         """Закрывает контекст и страницу, сохраняет состояние."""
         if self.context:
-            storage_state_file = os.path.join(self.path_to_profile, "storage_state.json")
-            await self.context.storage_state(path=storage_state_file)
+            await self.save_browser_cache()
             await self.context.close()
             self.context = None
             self.page = None
             print("Контекст и страница закрыты")
 
             await self.clearing_downloads_directory()
+    
+    async def save_browser_cache(self):
+        if self.context:
+            storage_state_file = os.path.join(self.path_to_profile, "storage_state.json")
+            await self.context.storage_state(path=storage_state_file)
 
     def reset_interaction_time(self):
         """Сбрасывает таймер последнего взаимодействия."""

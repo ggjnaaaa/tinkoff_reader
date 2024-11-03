@@ -1,8 +1,5 @@
 # auth_tinkoff.py
 
-# Стандартные библиотеки Python
-import os
-
 # Сторонние библиотеки
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
