@@ -5,12 +5,10 @@ from enum import Enum
 import asyncio
 
 # Сторонние библиотеки
-from playwright.async_api import Page, expect, TimeoutError as PlaywrightTimeoutError
-from fastapi import HTTPException
+from playwright.async_api import Page, expect
 
 # Собственные модули
 from utils.tinkoff.browser_manager import BrowserManager
-from tinkoff.config import submit_button_selector, error_selector
 
 # Типы страниц при входе на сайт
 class PageType(Enum):
@@ -107,31 +105,3 @@ async def get_text(page: Page, text_selector: str, timeout: int = 5):
         return await element.inner_text()
     except Exception:
         raise
-
-async def input_and_click_submit_with_check_errors(browser: BrowserManager, input_selector: str, input: str, timeout: int = 5):
-    try:
-        page = browser.page
-
-        # Ввод пароля
-        await write_input(page, input_selector, input)
-        await click_button(page, submit_button_selector)
-        error_message = await check_for_error_message(browser)
-
-        if error_message:
-            raise HTTPException(status_code=400, detail=error_message)
-    except:
-        raise
-
-# Асинхронная функция для проверки наличия сообщения об ошибке
-async def check_for_error_message(browser: BrowserManager, timeout=5):
-    try:
-        browser.reset_interaction_time()
-        error = await get_text(browser.page, error_selector, timeout=timeout)
-        return error
-    except Exception:
-        return None
-
-# Асинхронная функция для загрузки CSV со страницы расходов
-async def download_csv_from_expenses_page(page: Page):
-    await click_button(page, '[data-qa-id="export"]', timeout=5)
-    await click_button(page, '//span[text()="Выгрузить все операции в CSV"]', timeout=5)

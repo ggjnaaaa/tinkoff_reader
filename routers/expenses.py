@@ -2,17 +2,18 @@
 
 # Библиотеки Python
 import time
-from typing import List
 
 # Сторонние библиотеки
 from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from typing import Optional
 from fastapi.templating import Jinja2Templates
+from playwright.async_api import Page
 
 # Собственные модули
-from tinkoff.config import browser_instance as browser
-from utils.tinkoff.browser_utils import download_csv_from_expenses_page
+#from tinkoff.config import browser_instance as browser
+from routers.auth_tinkoff import get_browser, save_browser_cache
+from utils.tinkoff.browser_utils import click_button
 from utils.tinkoff.general_utils import (
     wait_for_new_download, 
     expenses_redirect, 
@@ -46,21 +47,24 @@ async def get_expenses(
     rangeStart: Optional[str] = None,  # Необязательное начало периода
     rangeEnd: Optional[str] = None  # Необязательный конец периода
 ):
+    browser = get_browser()
     if not await  browser.is_browser_active() or not await  browser.is_page_active():
         raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
     else:
         browser.reset_interaction_time()
+        await save_browser_cache()
     
     page = browser.page
 
     if await expenses_redirect(page, period, rangeStart, rangeEnd):  # Перенаправление на страницу по соответствующему периоду
+        await save_browser_cache()
         time.sleep(1)  # Если было перенаправление, то небольшое ожидание
 
     start_time = time.time()  # Засекаем время, начиная с которого надо искать csv
-    await download_csv_from_expenses_page(page)  # Качаем csv
+    await download_csv_from_expenses_page(page, 20)  # Качаем csv
 
     # Ждём появления нового CSV-файла
-    file_path = await wait_for_new_download(start_time=start_time)
+    file_path = await wait_for_new_download(start_time=start_time, timeout=20)
 
     # Получаем словарь с категориями из бд
     categories_dict = await get_expense_categories_with_description()
@@ -103,3 +107,9 @@ async def save_keywords(request: KeywordsUpdateRequest):
             raise HTTPException(status_code=400, detail="Некорректные данные")
         keywords_db[description] = category_id  # Обновляем или добавляем
     return {"message": "Ключевые слова сохранены"}
+
+
+# Асинхронная функция для загрузки CSV со страницы расходов
+async def download_csv_from_expenses_page(page: Page, timeout=5):
+    await click_button(page, '[data-qa-id="export"]', timeout)
+    await click_button(page, '//span[text()="Выгрузить все операции в CSV"]', timeout)

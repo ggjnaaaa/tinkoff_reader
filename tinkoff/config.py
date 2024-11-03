@@ -25,5 +25,4 @@ phone_input_selector = 'input[name="phone"]'  # Инпут номера теле
 sms_code_input_selector = 'input[automation-id="otp-input"]'  # Инпут смс-кода
 pin_code_input_selector = 'input[automation-id="pin-code-input-0"]'  # Инпут временного кода
 password_input_selector = 'input[automation-id="password-input"]'  # Инпут пароля
-otp_input_selector = 'input[automation-id="otp-input"]'  # Инпут временного пароля
 

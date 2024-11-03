@@ -4,7 +4,7 @@
 from fastapi import APIRouter
 
 # Собственные модули
-from tinkoff.config import browser_instance
+from routers.auth_tinkoff import get_browser
 
 router = APIRouter()
 
@@ -12,5 +12,7 @@ router = APIRouter()
 @router.post("/tinkoff/disconnect/")
 async def disconnect():
     print("Пользователь покинул страницу. Закрываем context.")
-    browser_instance.close_context_and_page()
+    browser = get_browser()
+    if browser:
+        await browser.close_context_and_page()
     return {"message": "Браузер закрыт"}
