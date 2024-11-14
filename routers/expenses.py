@@ -4,31 +4,37 @@
 import time
 
 # Сторонние библиотеки
-from fastapi import APIRouter, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Query, Request, HTTPException
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from typing import Optional
 from fastapi.templating import Jinja2Templates
 from playwright.async_api import Page
 
 # Собственные модули
-#from tinkoff.config import browser_instance as browser
-from routers.auth_tinkoff import get_browser, save_browser_cache
-from utils.tinkoff.browser_utils import click_button
-from utils.tinkoff.general_utils import (
-    wait_for_new_download, 
-    expenses_redirect, 
-    get_expense_categories_with_description,
-    get_json_expense_from_csv
+from routers.auth_tinkoff import get_browser, check_for_browser
+from utils.tinkoff.expenses_utils import load_expenses_from_site
+from utils.tinkoff.time_utils import (
+    get_period_range,
 )
-from tinkoff.models import (
-    CategoryRequest,
-    KeywordsUpdateRequest,
-    DeleteCategoryRequest
+from utils.tinkoff.browser_utils import PageType
+from routers.directory.tinkoff_expenses import (
+    get_expenses_from_db,
+    get_categories_from_db,
+    save_keyword_to_db,
+    remove_keyword_from_category,
+    get_last_unreceived_error,
+    set_temporary_code
 )
+import config as config
+from database import Session
+from models import SaveKeywordsRequest, CategoryExpenses
 
-# Имитируем "БД" с помощью словарей
-categories_db = {1: "Продукты", 2: "Транспорт", 3: "Развлечения"}  # id: название статьи
-keywords_db = {}  # id: ключевые слова
+def get_db():
+    db = Session()
+    try:
+        yield db
+    finally:
+        db.close()
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -36,80 +42,76 @@ templates = Jinja2Templates(directory="templates")
 # Эндпоинт для отображения страницы расходов
 @router.get("/tinkoff/expenses/page", response_class=HTMLResponse)
 async def show_expenses_page(request: Request):
-    print("ПЕРЕХОД НА РАСХОДЫ")
     # Передаем начальные параметры для рендеринга шаблона
-    return templates.TemplateResponse("tinkoff/expenses.html", {"request": request})
+    return templates.TemplateResponse("tinkoff/expenses.html", {"request": request})#RedirectResponse(url="/tinkoff/expenses/")
 
 # Эндпоинт для получения расходов за выбранный период
 @router.get("/tinkoff/expenses/")
 async def get_expenses( 
-    period: Optional[str] = Query("month"),  # Необязательный период
+    request: Request,
+    period: Optional[str] = None,  # Необязательный период
     rangeStart: Optional[str] = None,  # Необязательное начало периода
-    rangeEnd: Optional[str] = None  # Необязательный конец периода
+    rangeEnd: Optional[str] = None,  # Необязательный конец периода
+    time_zone: str = Query(...), 
+    db: Session = Depends(get_db)
 ):
+    # Преобразуем указанный диапазон в Unix-формат
+    unix_range_start, unix_range_end = get_period_range(
+        timezone=time_zone,
+        range_start=rangeStart,
+        range_end=rangeEnd,
+        period=period
+    )
+    
+    # Проверяем доступность браузера
     browser = get_browser()
-    if not await  browser.is_browser_active() or not await  browser.is_page_active():
-        raise HTTPException(status_code=307, detail="Сессия истекла. Перенаправление на основную страницу.")
+    if browser and await check_for_browser(browser):
+        # Если браузер доступен, загружаем данные с сайта
+        expenses_data = await load_expenses_from_site(browser, unix_range_start, unix_range_end, db, time_zone)
     else:
-        browser.reset_interaction_time()
-        await save_browser_cache()
-    
-    page = browser.page
+        # Если браузер недоступен, загружаем из базы, если данные существуют
+        expenses_data = get_expenses_from_db(db, unix_range_start, unix_range_end, time_zone)
+        
+        if not expenses_data["expenses"]:
+            raise HTTPException(status_code=404, detail="Данные за выбранный период отсутствуют в базе данных.")
+        
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return expenses_data
 
-    if await expenses_redirect(page, period, rangeStart, rangeEnd):  # Перенаправление на страницу по соответствующему периоду
-        await save_browser_cache()
-        time.sleep(1)  # Если было перенаправление, то небольшое ожидание
-
-    start_time = time.time()  # Засекаем время, начиная с которого надо искать csv
-    await download_csv_from_expenses_page(page, 20)  # Качаем csv
-
-    # Ждём появления нового CSV-файла
-    file_path = await wait_for_new_download(start_time=start_time, timeout=20)
-
-    # Получаем словарь с категориями из бд
-    categories_dict = await get_expense_categories_with_description()
-
-    return await get_json_expense_from_csv(file_path, categories_dict)
-    
+    # Иначе возвращаем HTML-шаблон
+    return templates.TemplateResponse(PageType.EXPENSES.template_path(), {"request": request })
 
 # Эндпоинт для получения всех категорий
 @router.get("/tinkoff/expenses/categories/")
-async def get_categories():
-    return [{"id": cat_id, "category_name": name} for cat_id, name in categories_db.items()]
+def get_categories(db: Session = Depends(get_db)):
+    return get_categories_from_db(db)
 
-
-# Эндпоинт для добавления категорий
-@router.post("/tinkoff/expenses/categories/")
-async def add_categories(request: CategoryRequest):
-    start_id = max(categories_db.keys()) + 1 if categories_db else 1
-    for category in request.categories:
-        categories_db[start_id] = category
-        start_id += 1
-    return {"message": "Категории добавлены"}
-
-
-# Эндпоинт для удаления категорий
-@router.delete("/tinkoff/expenses/categories/")
-async def delete_category(request: DeleteCategoryRequest):
-    for cat_id in request.ids:
-        categories_db.pop(cat_id, None)
-        keywords_db = {k: v for k, v in keywords_db.items() if v != cat_id}  # Удаляем связанные ключевые слова
-    return {"message": "Категории удалены"}
-
-
-# Эндпоинт для сохранения ключевых слов
 @router.post("/tinkoff/expenses/keywords/")
-async def save_keywords(request: KeywordsUpdateRequest):
-    for item in request.keywords:
-        description = item.get("description")
-        category_id = item.get("category_id")
-        if not description or category_id not in categories_db:
-            raise HTTPException(status_code=400, detail="Некорректные данные")
-        keywords_db[description] = category_id  # Обновляем или добавляем
-    return {"message": "Ключевые слова сохранены"}
+async def save_keywords(request: SaveKeywordsRequest, db: Session = Depends(get_db)):
+    for keyword in request.keywords:
+        if keyword.category_name == "":
+            # Удаляем ключевое слово, если оно привязано к какой-либо категории
+            remove_keyword_from_category(db, keyword.description)
+        else:
+            # Ищем ID категории по названию
+            category = db.query(CategoryExpenses).filter(CategoryExpenses.title == keyword.category_name).first()
+            if category:
+                save_keyword_to_db(db, keyword.description, category.id)
+            else:
+                raise HTTPException(status_code=422, detail=f"Категория {keyword.category_name} не найдена")
+    return JSONResponse(content={"message": "Ключевые слова успешно сохранены"})
 
+# Эндпоинт для сохранения временного пароля
+@router.post("/tinkoff/save_otp/")
+async def save_otp(
+    otp: str = Query(...), 
+    db: Session = Depends(get_db)):
+    if otp and len(otp) == 4:
+        set_temporary_code(db, otp)
 
-# Асинхронная функция для загрузки CSV со страницы расходов
-async def download_csv_from_expenses_page(page: Page, timeout=5):
-    await click_button(page, '[data-qa-id="export"]', timeout)
-    await click_button(page, '//span[text()="Выгрузить все операции в CSV"]', timeout)
+@router.get("/tinkoff/expenses/last_error/")
+def get_last_error_endpoint(db: Session = Depends(get_db)):
+    last_error = get_last_unreceived_error(db)
+    if last_error:
+        return {"last_error": last_error.error_text}
+    return {"last_error": None}

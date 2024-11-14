@@ -1,103 +1,157 @@
 // Код jQuery для настройки столбцов с изменяемой шириной
-$(document).ready(function () {
+$(window).on('load', function() {
     $('#expensesTable').resizableColumns();
+    
+    $('#itemsPerPageSelect').select2({
+        width: 'auto',  // Подгонка под размер текста
+        minimumResultsForSearch: Infinity  // Убираем поле поиска
+    });
 });
 
 // Вызов отображения расходов за месяц
 document.addEventListener("DOMContentLoaded", function () {
-    loadExpensesByDefaultPeriod('month');
+    showGlobalLoader();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const period = urlParams.get("period");
+    const rangeStart = urlParams.get("rangeStart");
+    const rangeEnd = urlParams.get("rangeEnd");
+
+    if (rangeStart && rangeEnd) {
+        // Если есть диапазон, вызываем loadExpensesByPeriod
+        //loadExpensesByPeriod(rangeStart, rangeEnd);
+        const formatRangeStart = formatDate(new Date(rangeStart));
+        const formatRangeEnd = formatDate(new Date(rangeEnd));
+        
+        dateRangePicker.setDate([formatRangeStart, formatRangeEnd], true); // Устанавливаем диапазон в календаре без вызова onChange
+        setPeriodLabel(`${formatRangeStart} - ${formatRangeEnd}`);
+        loadExpensesByPeriod(rangeStart, rangeEnd);
+    } else if (period) {
+        // Если указан период (например, "month"), используем его
+        loadExpensesByDefaultPeriod(period);
+        setPeriodLabel(getPeriodLabel(period));
+    } else {
+        // Если ничего не указано, загружаем по умолчанию за месяц
+        loadExpensesByDefaultPeriod('month');
+    }
+
+    getLastError();
 });
 
-// Общая функция для обработки возвращенной таблицы расходов с бэка
-function loadExpenses(data) {
-    $('#totalExpenses').text(`Общая сумма расходов: ${data.total_expense} ₽`);
-    $('#totalIncome').text(`Общая сумма доходов: ${data.total_income} ₽`);
+async function loadTinkoffExpenses() {
+    showGlobalLoader();
 
-    const tableBody = $('#expensesTable tbody');
-    tableBody.empty();
-
-    data.expenses.forEach(expense => {
-        const row = $(`
-            <tr>
-                <td>${expense.date_time}</td>
-                <td>${expense.card_number}</td>
-                <td>${expense.transaction_type}</td>
-                <td>${expense.amount} ₽</td>
-                <td>${expense.description}</td>
-                <td>
-                    <select class="category-select" data-description="${expense.description}">
-                        <option>${expense.category || 'Выберите категорию'}</option>
-                    </select>
-                </td>
-            </tr>
-        `);
-        tableBody.append(row);
-    });
-
-    // Применяем Select2
-    $('.category-select').select2({
-        placeholder: "Выберите категорию",
-        allowClear: true
-    });
-
-    fetchCategories()
+    try {
+        window.location.href = '/tinkoff/';
+    } catch (error) {
+        console.error("Ошибка при попытке входа в Тинькофф:", error);
+        showErrorToast("Ошибка при попытке входа в Тинькофф");
+    } finally {
+        hideGlobalLoader();
+    }
 }
 
-// Обработчик клика по значку удаления с делегированием
-$(document).on('click', '.delete-icon', function () {
-    const categoryId = $(this).data('id');
-    const categoryName = $(this).data('name');
-    deleteCategory(categoryId, categoryName); // Вызываем функцию удаления
-});
+async function getLastError() {
+    try {
+        const response = await fetch('/tinkoff/expenses/last_error/');
 
-// Загрузка расходов с сервера с учетом выбранного дефолтного периода
-function loadExpensesByDefaultPeriod(period = 'month') {
-    fetch(`http://127.0.0.1:8000/tinkoff/expenses/?period=${period}`)
-        .then(response => response.json())
-        .then(data => loadExpenses(data))
-        .catch(error => console.error('Ошибка при загрузке расходов:', error));
+        const error = await response.json();
+
+        if (error.last_error) {
+            showSessionExpiredModal(error.last_error);
+            console.log(error.last_error)
+        }
+    } catch (error) {
+        console.error("Ошибка при получении последней ошибки:", error);
+    }
 }
 
-// Загрузка расходов с сервера за сегодня
-function loadDayExpenses() {
-    const todayDate = getTodayDate();
-    loadExpensesByPeriod(toUnixTimestamp(todayDate + " 00:00:00:000"), toUnixTimestamp(todayDate + " 23:59:59:999"));
-}
+async function fetchCategories() {
+    showGlobalLoader();
+    
+    try {
+        const response = await fetch('/tinkoff/expenses/categories/');
 
-// Загрузка расходов с сервера за период
-function loadExpensesByPeriod(startUnixDate, endUnixDate) {
-    fetch(`http://127.0.0.1:8000/tinkoff/expenses/?rangeStart=${startUnixDate}&rangeEnd=${endUnixDate}`)
-        .then(response => response.json())
-        .then(data => loadExpenses(data))
-        .catch(error => console.error('Ошибка при загрузке расходов:', error));
-}
+        if (!response.ok) {
+            hideGlobalLoader();
+            const errorData = await response.json();
 
-function fetchCategories() {
-    fetch('/tinkoff/expenses/categories/')
-        .then(response => response.json())
-        .then(categories => {
-            console.log("Ответ сервера:", categories); // Выводим, чтобы проверить формат данных
-            if (!Array.isArray(categories)) {
-                throw new Error("Ответ не является массивом");
+            if (response.status === 307) {
+                showSessionExpiredModal(errorData.detail);
             }
+            else {
+                showErrorToast(errorData.detail);
+                console.error('Ошибка загрузки категорий:', error);
+            }
+            return;
+        }
 
-            const categoryOptions = categories.map(category => ({
-                id: category.id,
-                text: category.category_name
-            }));
+        const categories = await response.json();
 
-            $('.category-select').select2({
-                data: categoryOptions,
-                placeholder: "Выберите категорию",
-                allowClear: true
-            });
-        })
-        .catch(error => console.error('Ошибка загрузки категорий:', error));
+        console.log("Ответ сервера:", categories); // Выводим, чтобы проверить формат данных
+        if (!Array.isArray(categories)) {
+            throw new Error("Ответ не является массивом");
+        }
+
+        const categoryOptions = categories.map(category => ({
+            id: category.id,
+            text: category.category_name
+        }));
+
+        return categories.map(category => category.category_name);
+    } catch (error) {
+        console.error('Ошибка загрузки категорий:', error);
+    } finally {
+        hideGlobalLoader();
+    }
 }
 
-// Обработчик выбора категории
-function handleCategorySelect(selectElement) {
-    if (selectElement.value === "add") {
-        document.getElementById("addCategorySection").style.display = "block";
-    }   
+// Сохранение ключевых слов
+async function saveKeywords() {
+    showGlobalLoader();
+    const keywords = [];
+
+    document.querySelectorAll('.category-select').forEach(select => {
+        const categoryName = select.options[select.selectedIndex].textContent;
+        const description = select.closest('tr').querySelector('td:nth-child(4)').textContent;
+
+        // Исключаем записи с категорией "без категории"
+        if (description) {
+            keywords.push({ description, category_name: categoryName });
+            console.log(description, categoryName);
+        }
+    });
+
+    try {
+        const response = await fetch('/tinkoff/expenses/keywords/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ keywords })
+        });
+
+        if (!response.ok) {
+            hideGlobalLoader();
+            const errorData = await response.json();
+            if (response.status === 307) {
+                showSessionExpiredModal(errorData.detail);
+            }
+            else {
+                showErrorToast(errorData.detail);
+                console.error('Ошибка при сохранении ключевых слов:', errorData.detail);
+            }
+            return;
+        }
+
+        const data = await response.json();
+        console.log(data.message);
+        showNotificationToast(data.message);
+        // Перезагрузка или обновление страницы, если нужно
+    } catch (error) {
+        console.error('Ошибка при сохранении ключевых слов:', error);
+    } finally {
+        hideGlobalLoader();
+    }
 }
+
+
+

@@ -3,6 +3,9 @@ class SmsTimer extends HTMLElement {
         super();
         const shadowRoot = this.attachShadow({ mode: 'open' });
 
+        // Создаём ссылку на экземпляр InputControl
+        this.inputControl = document.querySelector('input-control');
+
         // Добавление стилей напрямую
         const style = document.createElement('style');
         style.textContent = `
@@ -22,6 +25,7 @@ class SmsTimer extends HTMLElement {
                 color: #004080;
             }
             button {
+                display: none;
                 background-color: #004080;
                 color: #fff;
                 padding: 8px 16px;
@@ -37,7 +41,7 @@ class SmsTimer extends HTMLElement {
         `;
         shadowRoot.appendChild(style);
 
-        this.timeLeft = 30; // Начальное значение таймера
+        this.timeLeft = 45; // Начальное значение таймера
     }
 
     connectedCallback() {
@@ -70,11 +74,11 @@ class SmsTimer extends HTMLElement {
         }
     }
 
-    fetchTimer() {
+    async fetchTimer() {
         const countdown = this.shadowRoot.getElementById('countdown');
         countdown.style.display = 'block';
 
-        fetch('http://127.0.0.1:8000/tinkoff/get_sms_timer/')
+        await fetch('/tinkoff/get_sms_timer/')
             .then(response => response.json())
             .then(data => {
                 let timeLeft = data.time_left;
@@ -89,19 +93,44 @@ class SmsTimer extends HTMLElement {
             .catch(error => console.error('Ошибка при получении таймера:', error));
     }
 
-    resendCode() {
-        fetch('http://127.0.0.1:8000/tinkoff/resend_sms/', { method: 'POST' })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    this.timeLeft = 30;
-                    this.shadowRoot.getElementById('resendButton').style.display = 'none';
-                    this.fetchTimer();
-                } else {
-                    alert('Не удалось отправить код заново.');
+    async resendCode() {
+        showGlobalLoader();
+        
+        try {
+            const response = await fetch('/tinkoff/resend_sms/', { method: 'POST' });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                if (response.status === 307) {
+                    showSessionExpiredModal(errorData.detail);
                 }
-            })
-            .catch(error => console.error('Ошибка при повторной отправке:', error));
+                else {
+                    showError(errorData.detail);
+                    console.error('Ошибка:', error);
+                }
+                return;
+            }
+
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                this.timeLeft = 30;
+                this.shadowRoot.getElementById('resendButton').style.display = 'none';
+                
+                // Здесь вызываем методы hideError и cleanInput
+                if (this.inputControl) {
+                    this.inputControl.hideError();
+                    this.inputControl.cleanInput();
+                }
+
+                this.fetchTimer();
+            }
+        } catch (error) {
+            this.showError('Ошибка сети. Попробуйте снова.');
+            console.error('Ошибка:', error);
+        } finally {
+            hideGlobalLoader();
+        }
     }
 }
 
