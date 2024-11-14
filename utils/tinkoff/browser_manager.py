@@ -46,14 +46,12 @@ class BrowserManager:
                 permissions=["notifications"]
             )
 
-            # Указываем путь для загрузки файлов
-            #await self.context.set_download_path(self.download_dir)
-
             self.page = await self.context.new_page()
             print("Контекст и страница созданы")
 
         # Обновляем время последнего взаимодействия
         self.reset_interaction_time()
+        asyncio.create_task(self.close_after_timeout())
 
     async def close_context_and_page(self):
         """Закрывает контекст и страницу, сохраняет состояние."""

@@ -179,6 +179,7 @@ p {
     color: #000a0e;
     background-color: #e7e8ed;
     border-collapse: collapse;
+    position: relative;
 }
 
 .trow-head-data {
@@ -187,11 +188,12 @@ p {
     line-height: 1.2rem;
     font-size: 1.2rem;
     padding: 10px;
-    position: relative;
+    position: sticky;
+    top: 66px;
     overflow: hidden;
     color: #f6f9fb;
     text-align: left;
-
+    z-index: 3;
 }
 
 .th-filter {
@@ -340,12 +342,13 @@ p {
 .form-element input,
 .form-element select,
 .form-element textarea {
+    resize: none;
     border: none;
     outline: none;
     box-shadow: 1px 1px 6px #b0b6b950;
     padding: 5px;
     border-radius: 3px;
-    resize: none;
+    background-color: #ffffff;
 }
 
 .form-element label {
@@ -401,10 +404,9 @@ p {
     transition: 0.3s;
 }
 
-#edit-form-container {
+.edit-form-container {
     display: none;
     width: 100%;
-    height: 100%;
     position: absolute;
     top: 0px;
     left: 0px;
@@ -413,21 +415,34 @@ p {
     z-index: 5;
 }
 
-#edit-form-container.open {
+.edit-form-container.open {
     display: block;
+    height: 100%;
 }
 
 .edit-entry-form {
-    height: calc(100% - 2px);
+    margin-top: 4px;
     display: flex;
     align-items: center;
+}
+
+.edit-form-container.open .edit-entry-form {
+    height: calc(100% - 8px);
 }
 
 .edit-entry-form select,
 .edit-entry-form input {
     border: none;
     outline: none;
+    height: 100%;
     margin: 0 2px;
+    box-shadow: 1px 1px 6px #b0b6b950;
+    border-radius: 3px;
+    resize: none;
+}
+
+#edit-checkbox-td {
+    height: 100%;
 }
 
 .edit-checkbox-td {
@@ -439,16 +454,13 @@ p {
     border: none;
     line-height: 23px;
     border-radius: 3px;
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 400;
     color: #f6f9fb;
     cursor: pointer;
     background-color: #66ccf3;
     box-shadow: 1px 1px 6px #b0b6b950;
-}
-
-#edit-transfer {
-    width: 10px;
+    flex-grow: 1;
 }
 
 /*welcome*/
@@ -575,6 +587,24 @@ p {
 
 /*directory*/
 
+.directory-input {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border: none;
+    outline: none;
+    width: 100%;
+    height: 100%;
+    background: inherit;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.directory-input:focus {
+    border: 2px solid #66ccf3;
+}
 
 /*pagination*/
 .pagination,
@@ -681,5 +711,21 @@ p {
 
     #users_table .tcol {
         font-size: 9px;
+    }
+}
+
+@media (pointer: coarse) {
+    select, option, input[type="date"] {
+        font-size: 18px;
+        padding: 15px;
+        color: #333;
+        background-color: #f9f9f9;
+    }
+
+    /* Для улучшения отображения на мобильных устройствах */
+    input[type="date"]::-webkit-inner-spin-button,
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        filter: invert(0.5);
+        opacity: 0.7;
     }
 }

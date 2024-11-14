@@ -46,26 +46,9 @@ async def detect_page_type(browser: BrowserManager, retries: int = 3):
     last_except = ''
     while attempt_current_page < retries:
         try:
-            browser.reset_interaction_time()  # Если у тебя есть эта функция, сбрасываем время взаимодействия
-            page = browser.page 
-
-            # Ожидаем, что страница полностью загрузится
-            await page.wait_for_load_state('networkidle', timeout=16000)  # Ожидание окончания сетевой активности
-
-            if await page.is_visible('body'):
-                # Пробуем получить содержимое страницы
-                try:
-                    content = await page.content()  # Получаем HTML-код страницы
-                except Exception as e:
-                    print(f"Не удалось получить контент страницы: {e}")
-                    await asyncio.sleep(1)  # Небольшая задержка перед повторной попыткой
-                    attempt_current_page += 1
-                    continue  # Переходим к следующей попытке в цикле
-
-                # Проверяем содержимое на соответствие типам страниц
-                for page_type in PageType:
-                    if page_type.value in content:
-                        return page_type  # Возвращаем тип страницы, если найден
+            page_type = await get_page_type(browser)
+            if page_type:
+                return page_type
         except Exception as e:  # Ловим все исключения
             last_except = e
         finally:
@@ -74,12 +57,78 @@ async def detect_page_type(browser: BrowserManager, retries: int = 3):
     print(f"Ошибка при определении типа страницы: {last_except}")
     return None
 
+async def detect_page_type_after_url_change(browser: BrowserManager, initial_url: str, retries: int = 3):
+    """Ожидает, пока текущий URL изменится с `initial_url`, затем определяет тип страницы по содержимому."""
+    attempt_current_page = 0
+    last_except = None
+
+    while attempt_current_page < retries:
+        try:
+            # Ждем, пока URL изменится с исходного
+            url_changed = await wait_for_url_change_from(browser.page, initial_url)
+            if not url_changed:
+                print(f"Не удалось дождаться перехода с URL: {initial_url}")
+                attempt_current_page += 1
+                continue
+
+            page_type = await get_page_type(browser)
+            if page_type:
+                return page_type
+        except Exception as e:
+            last_except = e
+            print(f"Попытка {attempt_current_page + 1} завершилась ошибкой: {e}")
+        finally:
+            attempt_current_page += 1
+
+    print(f"Не удалось определить тип страницы после {retries} попыток. Последняя ошибка: {last_except}")
+    return None
+
+async def wait_for_url_change_from(page: Page, initial_url: str, timeout: int = 10000):
+    """Ожидает, пока текущий URL не изменится с `initial_url`."""
+    try:
+        await page.wait_for_function(
+            f"window.location.href !== '{initial_url}'", timeout=timeout
+        )
+        return True
+    except asyncio.TimeoutError:
+        print(f"Timeout: ожидание перехода с {initial_url} завершилось неудачей.")
+        return False
+    except Exception as e:
+        print(f"Ошибка при ожидании изменения URL: {e}")
+        return False
+
+async def get_page_type(browser: BrowserManager):
+    browser.reset_interaction_time()  # Сбрасываем время взаимодействия, если функция доступна
+    page = browser.page
+
+    # Ожидаем окончания сетевой активности
+    await browser.page.wait_for_function('document.readyState === "complete"', timeout=16000)
+
+    if await page.is_visible('body'):
+        try:
+            content = await page.content()  # Получаем HTML-код страницы
+        except Exception as e:
+            print(f"Не удалось получить контент страницы: {e}")
+            await asyncio.sleep(1)  # Задержка перед повторной попыткой
+            return None
+
+        # Проверяем содержимое на соответствие типам страниц
+        for page_type in PageType:
+            if page_type.value in content:
+                return page_type  # Возвращаем тип страницы, если найден
+
 # Общая асинхронная функция для получения элемента с обработкой ошибок
 async def get_element(page: Page, selector: str, timeout: int = 5):
     """Находит элемент на странице с заданным селектором и ждёт его видимости в течение заданного времени."""
     ms_timeout = timeout * 1000
+    # Ждем появления элемента
+    await page.wait_for_selector(selector, timeout=ms_timeout)
+
+    # Создаем локатор для элемента
     el = page.locator(selector)
-    await expect(el).to_be_visible(timeout=timeout)  # Ожидаем, что элемент станет видимым в течение timeout
+
+    # Проверяем, что элемент видим
+    await expect(el).to_be_visible(timeout=ms_timeout)  # Ожидаем, что элемент станет видимым в течение timeout
     return el
 
 # Асинхронная функция записи информации в поле ввода
