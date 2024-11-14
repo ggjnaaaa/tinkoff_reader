@@ -6,16 +6,25 @@ document.addEventListener("click", function (event) {
     }
 });
 
-flatpickr("#dateRange", {
+const dateRangePicker = flatpickr("#dateRange", {
     mode: "range",
     dateFormat: "d.m.Y",
     locale: "ru",
     maxDate: "today",
     onChange: function(selectedDates) {
         if (selectedDates.length === 2) {
-            const startUnixDate = toUnixTimestamp(formatDate(selectedDates[0]) + " 00:00:00:000");
-            const endUnixDate = toUnixTimestamp(formatDate(selectedDates[1]) + " 23:59:59:999");
-            loadExpensesByPeriod(startUnixDate, endUnixDate);
+            const startDate = selectedDates[0];
+            const endDate = selectedDates[1];
+
+            // Форматируем даты в строку "YYYY-MM-DD" без изменения временной зоны
+            const startDateString = startDate.getFullYear() + '-' +
+                                    String(startDate.getMonth() + 1).padStart(2, '0') + '-' +
+                                    String(startDate.getDate()).padStart(2, '0');
+            const endDateString = endDate.getFullYear() + '-' +
+                                  String(endDate.getMonth() + 1).padStart(2, '0') + '-' +
+                                  String(endDate.getDate()).padStart(2, '0');
+
+            loadExpensesByPeriod(startDateString, endDateString);
             setPeriodLabel(`${formatDate(selectedDates[0])} - ${formatDate(selectedDates[1])}`);
         }
     }
@@ -24,6 +33,11 @@ flatpickr("#dateRange", {
 function togglePeriodOptions() {
     const options = document.getElementById('periodOptions');
     options.style.display = options.style.display === 'block' ? 'none' : 'block';
+
+    // Закрыть список после выбора
+    options.addEventListener('change', () => {
+        options.style.display = options.style.display === 'block' ? 'none' : 'block';
+    });
 }
 
 function setPeriodLabel(label) {
@@ -36,20 +50,7 @@ function formatDate(date) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     
-    return `${year}-${month}-${day}`;
-}
-
-function toUnixTimestamp(dateString) {
-    // Создаем объект Date из переданной строки даты и времени
-    const date = new Date(dateString);
-
-    // Проверяем корректность даты
-    if (isNaN(date.getTime())) {
-        throw new Error("Некорректная дата. Пожалуйста, используйте формат YYYY-MM-DD HH:mm:ss:msms.");
-    }
-
-    // Переводим в миллисекунды
-    return date.getTime();
+    return `${day}.${month}.${year}`;
 }
 
 function getTodayDate() {
@@ -60,6 +61,23 @@ function getTodayDate() {
     const month = String(today.getMonth() + 1).padStart(2, '0'); // Месяц с 0 по 11
     const day = String(today.getDate()).padStart(2, '0');
 
-    const formattedDate = `${month}.${day}.${year}`;
+    const formattedDate = `${year}-${month}-${day}`;
     return formattedDate;
+}
+
+// Функция для получения метки периода
+function getPeriodLabel(period) {
+    switch (period) {
+        case 'day': return 'Сегодня';
+        case 'week': return 'Текущая неделя';
+        case 'month': return 'Этот месяц';
+        case '3month': return '3 месяца';
+        case 'year': return 'Этот год';
+        default: return 'Этот месяц';
+    }
+}
+
+// Функция для очистки даты
+function clearDateRange() {
+    dateRangePicker.clear();
 }

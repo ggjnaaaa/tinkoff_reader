@@ -1,10 +1,12 @@
 ### Сторонние библиотеки:
-pip install pytest-playwright
-pip install python-dotenv  
+pip install pytest-playwright  
 pip install uvicorn  
 pip install fastapi  
 pip install jinja2  
-pip install aiofiles 
+pip install aiofiles  
+pip install pytz  
+pip install fuzzywuzzy (+pip install python-Levenshtein, если вылезает предупреждение UserWarning при запуске сервера)  
+
 
 ```playwright install chromium``` (чтобы установить драйвер для playwright, выполнить 1 раз)
 
@@ -18,6 +20,45 @@ pip install aiofiles
 3. В корне проекта выполняем ```uvicorn main:app --reload --port 8000```
 4. Заходим в браузер на 127.0.0.1:8000
 5. Чтобы вкл/выкл отображение окна в функции initialize_browser (в файле /utils/tinkoff/browser_manager.py) в строчке ```headless=True``` пишем ```True``` - для отображения окна, ```False``` - для скрытия окна
+
+Создание таблиц в PostgreSQL:
+```SQL
+-- Таблица "Расходы" с датой, номером карты, суммой, описанием и категорией
+CREATE TABLE IF NOT EXISTS expenses (
+    id SERIAL PRIMARY KEY,
+    timestamp BIGINT NOT NULL, -- Время в Unix-формате
+    card_number VARCHAR(10), -- В формате "*1234"
+    amount DECIMAL(10, 2) NOT NULL, -- Сумма операции
+    description TEXT
+);
+
+-- Таблица "Ключевые слова" для хранения ID статьи и ключевых фраз
+CREATE TABLE IF NOT EXISTS category_expenses_keywords (
+    id SERIAL PRIMARY KEY,
+    category_id INTEGER NOT NULL REFERENCES category_expenses(id) ON DELETE CASCADE,
+    keyword VARCHAR(255) NOT NULL UNIQUE -- Ключевые слова должны быть уникальными по всей таблице
+);
+
+-- Таблица "Категории" с ID и названием
+CREATE TABLE IF NOT EXISTS category_expenses (
+    id SERIAL PRIMARY KEY,
+    title TEXT NOT NULL
+);
+
+-- Таблица "Временный код"
+CREATE TABLE temporary_code (
+    id SERIAL PRIMARY KEY,
+    code CHAR(4) NOT NULL
+);
+
+-- Таблица "Последняя ошибка"
+CREATE TABLE last_error (
+    id SERIAL PRIMARY KEY,
+    error_text TEXT NOT NULL,
+    error_time TIMESTAMP DEFAULT NOW(),
+    is_received BOOLEAN DEFAULT FALSE
+);
+```
 
 ### 09.10.24
 Добавлено:
@@ -58,6 +99,7 @@ pip install aiofiles
 * Добавлено взаимодействие между фронтом и бэком через jinja2
 * Проект структурирован по папкам
 * Наложены стили на страницы
+* Селекторы лежат в конфиге
 
 Исправленные проблемы:
 * ~~Долгий сбор расходов и незавершенная таблица~~
@@ -77,3 +119,23 @@ pip install aiofiles
     * расстояние между кнопками на расходах
     * список статье слишком узкий
     * при входе на страницу ввода смс видно кнопку повторной отправвки
+
+
+### 15.11.24
+Добавлено:
+* Пути к папкам теперь прописываются в конфиге вместо .env
+* Значок загрузки на страницах при обращении к серверу
+* Убран спам кнопок с помощью объекта который появляется со значком загрузки
+* Различные предупреждения
+* Расходы, временный пароль, статьи, последняя ошибка (для автономного вытягивания расходов каждый день) грузятся в бд
+* По умолчанию расходы выгружаются с бд
+* Не нужен вход в тинькофф для выгрузки расходов
+* Пагинация на странице расходов
+* Статьи применяются автоматически по описанию
+* Улучшен подсчет расходов
+* Немного улучшен фронт
+
+Задачи:
+* Доработать фронт, адаптировать под компьютер, планшет, телефон
+* Сделать автовыгрузку расходов в 21:00 МСК
+* Код ревью

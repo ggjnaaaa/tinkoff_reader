@@ -1,28 +1,38 @@
 h1 {
-    font-size: 2rem;
+    font-size: 200%;
     color: #004080;
-    margin-bottom: 0.5em;
+    margin-bottom: 0.2em;
+    margin-top: 2rem;
 }
 
 h2 {
-    font-size: 1.5rem;
+    font-size: 150%;
     color: #004080;
     margin-bottom: 0.5em;
 }
 
 label {
-    font-size: 1rem;
+    font-size: 100%;
     color: #333;
     margin-right: 8px;
 }
 
-button {
-    background-color: #004080;
-    color: #fff;
-    padding: 10px 20px;
+button { 
+    position: relative;
+    padding: 8px 16px;
+    font-size: 90%;
     border: none;
     cursor: pointer;
     border-radius: 5px;
+    margin-top: 8px;
+    background-color: #004080;
+    color: #fff;
+}
+
+button:focus,
+button:active {
+    outline: none;
+    transform: translateY(0);
 }
 
 button:hover {
@@ -32,6 +42,22 @@ button:hover {
 #periodButton {
     display: inline-block;
     position: relative;
+}
+
+.button-container {
+    display: flex;
+    /*gap: 5%; /* Задаёт расстояние между кнопками */
+    align-items: center;
+    margin-right: 7%;
+    font-size: 11px;
+}
+
+button#loadTinkoffExpenses {
+    height: 31px;
+}
+
+disconnect-button {
+    display: inline-block;
 }
 
 /* Для страницы расходов */
@@ -49,7 +75,7 @@ button:hover {
 .period-options button {
     background-color: #f9f9f9;
     color: black;
-    padding: 10px;
+    padding: 5px 10px;
     width: 100%;
     border: none;
     text-align: left;
@@ -61,10 +87,10 @@ button:hover {
 
 /* Основной стиль для таблицы расходов */
 .expenses-table {
-    width: 100%;
+    width: 98%;
     border-collapse: collapse;
-    font-size: 1rem;
-    margin-top: 1em;
+    font-size: 90%;
+    margin-top: 2em;
 }
 
 .expenses-table th, .expenses-table td {
@@ -84,6 +110,16 @@ button:hover {
 
 .expenses-table tr:nth-child(odd) {
     background-color: #ffffff;
+}
+
+.expenses-table td {
+    padding: 8px; /* Отступы внутри ячеек */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Добавляет многоточие, если текст выходит за пределы */
+}
+
+.select2-container {
+    width: 100% !important;
 }
 
 /* Для inputControl */
@@ -148,4 +184,152 @@ input[type="number"]::-webkit-inner-spin-button {
     color: black;
     text-decoration: none;
     cursor: pointer;
+}
+
+/* Блокировщик контента */
+.content-blocker {
+    position: fixed; /* Абсолютное позиционирование внутри #content */
+    top: 65;
+    left: 0;
+    width: 100%; /* Полная ширина контейнера */
+    min-height: 100vh;
+    background: rgba(0, 0, 0, 0.5); /* Полупрозрачный белый фон */
+    display: none; /* Скрыто по умолчанию */
+    align-items: center; /* Центрирование по вертикали */
+    justify-content: center; /* Центрирование по горизонтали */
+    z-index: 10; /* z-index для перекрытия контента */
+}
+
+/* Значок загрузки */
+.loader {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+/* Контент окна ошибки */
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 300px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Кнопки внутри модального окна */
+.modal-buttons {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 15px;
+}
+
+.button-primary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+
+.button-secondary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #f44336;
+    color: white;
+    cursor: pointer;
+}
+
+.button-primary:hover, .button-secondary:hover {
+    opacity: 0.9;
+}
+
+/* Основные стили для всплывающего уведомления */
+.error-toast {
+    position: fixed;
+    top: 80;
+    right: 30px;
+    width: 200px;
+    padding: 8px;
+    background-color: rgba(131, 3, 3, 0.8); /* Полупрозрачный красный фон */
+    color: white;
+    font-weight: regular;
+    font-size: 100%;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    opacity: 0;
+    transform: translateX(100%);
+    z-index: 1000;
+}
+
+/* Анимация для появления уведомления */
+.error-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.notification-toast {
+    position: fixed;
+    top: 80;
+    right: 30px;
+    width: 200px;
+    padding: 8px;
+    background-color: rgba(6, 104, 2, 0.8); /* Полупрозрачный красный фон */
+    color: white;
+    font-weight: regular;
+    font-size: 100%;
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+    opacity: 0;
+    transform: translateX(100%);
+    z-index: 1000;
+}
+
+/* Анимация для появления уведомления */
+.notification-toast.show {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+#paginationRowCount {
+    left: 40px;
+    position: absolute;
+    display: flex;
+    text-wrap-mode: nowrap;
+    align-items: center;
+}
+
+#paginationRowCount label {
+    margin-right: 10px;  /* Отступ между меткой и селектом */
+}
+
+#paginationControls {
+    position: relative;
+    margin-top: 20px;
+}
+
+#paginationControls .previous-button {
+    margin: 20px;
+}
+
+#paginationControls .next-button {
+    margin: 20px;
 }

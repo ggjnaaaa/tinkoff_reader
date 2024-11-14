@@ -1,5 +1,5 @@
 ﻿# Мои:
-chrome_data/
+chrome_data/*
 chromedriver-win64/
 *.deb
 

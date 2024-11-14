@@ -20,16 +20,20 @@
 {% endblock %}
 
 
+{% block nav %}
+    <button id="loadTinkoffExpenses" onclick="loadTinkoffExpenses()" style="height: 31px; margin-right: 20px;">Загрузить с Тинькофф</button> 
+{% endblock %}
+
+
 {% block content %}
     <h1>Ваши расходы</h1>
     <h2 id="totalExpenses">Общая сумма расходов: 0 ₽</h2>
-    <h2 id="totalIncome">Общая сумма доходов: 0 ₽</h2>
 
     <!-- Выпадающий список для выбора периода -->
     <div style="position: relative;">
         <button id="periodButton" onclick="togglePeriodOptions()">Этот месяц</button>
         <div id="periodOptions" class="period-options">
-            <button onclick="loadDayExpenses(); setPeriodLabel('Сегодня')">Сегодня</button>
+            <button onclick="loadExpensesByDefaultPeriod('day'); setPeriodLabel('Сегодня')">Сегодня</button>
             <button onclick="loadExpensesByDefaultPeriod('week'); setPeriodLabel('Текущая неделя')">Текущая неделя</button>
             <button onclick="loadExpensesByDefaultPeriod('month'); setPeriodLabel('Этот месяц')">Этот месяц</button>
             <button onclick="loadExpensesByDefaultPeriod('3month'); setPeriodLabel('3 месяца')">3 месяца</button>
@@ -42,10 +46,9 @@
         <input id="dateRange" type="text" placeholder="Выберите период" />
     </div>
 
-    <!-- Кнопки добавления и удаления категорий -->
-    <div style="margin-top: 15px;">
-        <button onclick="openModal('addCategoryModal')">Добавить статью</button>
-        <button onclick="openModal('deleteCategoryModal')">Удалить статью</button>
+    <div style="margin-top: 12px;margin-bottom: 10px;">
+        <label for="cardFilter">Фильтр по картам:</label>
+        <select id="cardFilter" style="width: 200px;"></select>
     </div>
 
     <button onclick="saveKeywords()">Сохранить изменения</button>
@@ -53,9 +56,8 @@
     <table id="expensesTable" class="expenses-table resizable">
         <thead>
             <tr>
-                <th>Дата и время операции</th>
+                <th>Дата и время</th>
                 <th>Карта</th>
-                <th>Тип операции</th>
                 <th>Сумма</th>
                 <th>Описание</th>
                 <th>Статья</th>
@@ -64,30 +66,18 @@
         <tbody></tbody>
     </table>
 
-    <!-- Модальное окно для добавления категории -->
-    <div id="addCategoryModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('addCategoryModal')">&times;</span>
-            <p style="padding: 7px;">Добавить новые статьи</p>
-            <div id="categoryInputs" style="padding: 7px;">
-                <input type="text" class="category-input" placeholder="Название новой статьи" />
-            </div>
-            <button onclick="addCategoryInput()" style="padding: 7px;">Добавить еще</button>
-            <button onclick="submitNewCategories()" style="padding: 7px;">Сохранить</button>
-            <button onclick="closeModal('addCategoryModal')" style="padding: 7px;">Отмена</button>
+    <!-- Пагинация -->
+    <div style="margin-top: 20px; margin-bottom: 15px;">
+        <div id="paginationRowCount">
+            <label for="itemsPerPageSelect">Строк на странице:</label>
+            <select id="itemsPerPageSelect" class="select2">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
         </div>
-    </div>
-
-    <!-- Модальное окно для удаления категорий -->
-    <div id="deleteCategoryModal" class="modal" style="display:none;">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('deleteCategoryModal')">&times;</span>
-            <p style="padding: 7px;">Удалить выбранные статьи?</p>
-            <div id="deleteCategoryList" style="padding: 7px;">
-                <!-- Список категорий с чекбоксами будет добавлен здесь динамически -->
-            </div>
-            <button onclick="confirmDeleteCategories()" style="padding: 7px;">Удалить</button>
-            <button onclick="closeModal('deleteCategoryModal')" style="padding: 7px;">Отмена</button>
+        <div id="paginationControls">
+            <!-- Контролы для смены страниц добавляются динамически из renderPaginationControls -->
         </div>
     </div>
 {% endblock %}
@@ -95,5 +85,7 @@
 {% block scripts %}
     <script src="/static/scripts/tinkoff/expenses.js" defer></script>
     <script src="/static/scripts/tinkoff/expenses_calendar.js" defer></script>
-    <script src="/static/scripts/tinkoff/expenses_modal.js" defer></script>
+    <script src="/static/scripts/tinkoff/load_expenses.js" defer></script>
+    <script src="/static/scripts/tinkoff/expense_manager.js" defer></script>
+    <script src="/static/scripts/tinkoff/libs/decimal.js" defer></script>
 {% endblock %}

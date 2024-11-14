@@ -1,10 +1,10 @@
-import utils.tinkoff.browser_manager as BrowserManager
+from utils.tinkoff.browser_manager import BrowserManager
 
 # Тайм-аут для неактивности, после которого браузер будет закрыт (в секундах)
 BROWSER_TIMEOUT: int = 180  # 3 минута
 EXPENSES_URL: str = f"https://www.tbank.ru/auth/login/?redirectTo=%2Fevents%2Ffeed%2F&redirectType="
-DOWNLOAD_DIRECTORY: str = None
-PATH_TO_CHROME_PROFILE: str = None
+PATH_TO_CHROME_PROFILE="/home/ggjnaaaa/myProgs/tinkoff_reader/chrome_data/"
+DOWNLOAD_DIRECTORY="/home/ggjnaaaa/myProgs/tinkoff_reader/downloads/"
 
 # Работа с драйвером
 browser_instance: BrowserManager = None
