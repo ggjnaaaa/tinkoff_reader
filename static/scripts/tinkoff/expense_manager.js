@@ -49,11 +49,11 @@ class ExpenseManager {
 
     calculateTotalExpense() {
         const total = this.filteredExpenses.reduce((total, expense) => {
-            return total.plus(new Decimal(expense.amount));
-        }, new Decimal(0)); // Начальная сумма в Decimal
-
-        return total.toFixed(2); // Округляем до двух знаков после запятой
-    }   
+            return total + parseFloat(expense.amount); // Преобразуем строку в число
+        }, 0);
+    
+        return total.toFixed(2); // Округляем до двух знаков
+    }
 
     setItemsPerPage(count) {
         this.itemsPerPage = count;

@@ -9,46 +9,79 @@ $(window).on('load', function() {
 });
 
 // Вызов отображения расходов за месяц
-document.addEventListener("DOMContentLoaded", function () {
+document.addEventListener("DOMContentLoaded", async function () {
     showGlobalLoader();
 
     const urlParams = new URLSearchParams(window.location.search);
     const period = urlParams.get("period");
     const rangeStart = urlParams.get("rangeStart");
     const rangeEnd = urlParams.get("rangeEnd");
+    const source = urlParams.get("source");
+
+    if (source) {
+        const radioButton = document.querySelector(`input[name="dataSource"][value="${source}"]`);
+        if (radioButton) {
+            radioButton.checked = true;
+            setDataSource(source);
+        }
+    }
 
     if (rangeStart && rangeEnd) {
         // Если есть диапазон, вызываем loadExpensesByPeriod
-        //loadExpensesByPeriod(rangeStart, rangeEnd);
         const formatRangeStart = formatDate(new Date(rangeStart));
         const formatRangeEnd = formatDate(new Date(rangeEnd));
         
-        dateRangePicker.setDate([formatRangeStart, formatRangeEnd], true); // Устанавливаем диапазон в календаре без вызова onChange
+        dateRangePicker.setDate([formatRangeStart, formatRangeEnd], true);
         setPeriodLabel(`${formatRangeStart} - ${formatRangeEnd}`);
-        loadExpensesByPeriod(rangeStart, rangeEnd);
     } else if (period) {
-        // Если указан период (например, "month"), используем его
-        loadExpensesByDefaultPeriod(period);
         setPeriodLabel(getPeriodLabel(period));
     } else {
-        // Если ничего не указано, загружаем по умолчанию за месяц
         loadExpensesByDefaultPeriod('month');
     }
 
+    const errorElement = document.querySelector('#error-message');
+    if (errorElement) {
+        const errorMessage = errorElement.textContent.trim();
+        if (errorMessage) {
+            showErrorToast(errorMessage);
+        }
+    }
+
+    const expensesElement = document.querySelector('#expenses');
+    if (expensesElement) {
+        const textContent = expensesElement.textContent.trim();
+        if (textContent) {
+            try {
+                const expensesData = JSON.parse(textContent);
+                loadExpenses(expensesData);
+            } catch (error) {
+                console.error("Ошибка при разборе JSON:", error);
+            }
+        } else {
+            console.warn("Элемент #expenses пуст.");
+        }
+    } else {
+        console.warn("Элемент #expenses не найден.");
+    }
+    
+    const redirectUrlElement = document.querySelector('#redirect_url');
+    if (redirectUrlElement) {
+        const textContent = redirectUrlElement.textContent.trim();
+        if (textContent) {
+            window.location.href = textContent;
+            return;
+        }
+    }
+    
+    hideGlobalLoader();
     getLastError();
 });
 
-async function loadTinkoffExpenses() {
-    showGlobalLoader();
+let currentDataSource = 'db'; // По умолчанию из базы
 
-    try {
-        window.location.href = '/tinkoff/';
-    } catch (error) {
-        console.error("Ошибка при попытке входа в Тинькофф:", error);
-        showErrorToast("Ошибка при попытке входа в Тинькофф");
-    } finally {
-        hideGlobalLoader();
-    }
+function setDataSource(source) {
+    currentDataSource = source;
+    showNotificationToast(`Источник данных: ${source === 'db' ? 'База данных' : 'Тинькофф'}`);
 }
 
 async function getLastError() {
@@ -59,7 +92,7 @@ async function getLastError() {
 
         if (error.last_error) {
             showSessionExpiredModal(error.last_error);
-            console.log(error.last_error)
+            console.error(error.last_error)
         }
     } catch (error) {
         console.error("Ошибка при получении последней ошибки:", error);
@@ -88,7 +121,6 @@ async function fetchCategories() {
 
         const categories = await response.json();
 
-        console.log("Ответ сервера:", categories); // Выводим, чтобы проверить формат данных
         if (!Array.isArray(categories)) {
             throw new Error("Ответ не является массивом");
         }
@@ -116,9 +148,8 @@ async function saveKeywords() {
         const description = select.closest('tr').querySelector('td:nth-child(4)').textContent;
 
         // Исключаем записи с категорией "без категории"
-        if (description) {
+        if (description && !keywords.some(keyword => keyword.description === description && keyword.category_name === categoryName)) {
             keywords.push({ description, category_name: categoryName });
-            console.log(description, categoryName);
         }
     });
 
@@ -143,7 +174,6 @@ async function saveKeywords() {
         }
 
         const data = await response.json();
-        console.log(data.message);
         showNotificationToast(data.message);
         // Перезагрузка или обновление страницы, если нужно
     } catch (error) {

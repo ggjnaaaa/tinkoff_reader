@@ -19,12 +19,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 {% endblock %}
 
-
-{% block nav %}
-    <button id="loadTinkoffExpenses" onclick="loadTinkoffExpenses()" style="height: 31px; margin-right: 20px;">Загрузить с Тинькофф</button> 
-{% endblock %}
-
-
 {% block content %}
     <h1>Ваши расходы</h1>
     <h2 id="totalExpenses">Общая сумма расходов: 0 ₽</h2>
@@ -49,6 +43,19 @@
     <div style="margin-top: 12px;margin-bottom: 10px;">
         <label for="cardFilter">Фильтр по картам:</label>
         <select id="cardFilter" style="width: 200px;"></select>
+    </div>
+
+    <div class="download_selection">
+        <label class="radio-option">
+            <input type="radio" name="dataSource" value="db" checked onchange="setDataSource('db')">
+            <span class="custom-radio"></span>
+            Загружать из базы
+        </label>
+        <label class="radio-option">
+            <input type="radio" name="dataSource" value="tinkoff" onchange="setDataSource('tinkoff')">
+            <span class="custom-radio"></span>
+            Загружать с Тинькофф
+        </label>
     </div>
 
     <button onclick="saveKeywords()">Сохранить изменения</button>
@@ -80,6 +87,16 @@
             <!-- Контролы для смены страниц добавляются динамически из renderPaginationControls -->
         </div>
     </div>
+
+    <div id="error-message" style="display: none;">
+        {{ error_message }}
+    </div>
+    <div id="expenses" style="display: none;">
+        {{ expenses }}
+    </div>
+    <div id="redirect_url" style="display: none;">
+        {{ redirect_url }}
+    </div>
 {% endblock %}
 
 {% block scripts %}
@@ -87,5 +104,4 @@
     <script src="/static/scripts/tinkoff/expenses_calendar.js" defer></script>
     <script src="/static/scripts/tinkoff/load_expenses.js" defer></script>
     <script src="/static/scripts/tinkoff/expense_manager.js" defer></script>
-    <script src="/static/scripts/tinkoff/libs/decimal.js" defer></script>
 {% endblock %}

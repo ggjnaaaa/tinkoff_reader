@@ -1,13 +1,14 @@
 # general.py
 
-# Сторонние библиотеки
+# Сторонние модули
 from fastapi import APIRouter
-from fastapi.responses import RedirectResponse
 
 # Собственные модули
 from routers.auth_tinkoff import get_browser
 
+
 router = APIRouter()
+
 
 # Пользователь перешел на другую страницу
 @router.post("/tinkoff/disconnect/")
