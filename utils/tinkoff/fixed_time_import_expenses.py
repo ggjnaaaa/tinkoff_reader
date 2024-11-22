@@ -1,19 +1,164 @@
 # fixed_time_import_expenses.py
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
-from pytz import timezone
+
+# Стандартные модули Python
+import time
 import asyncio
-import threading
+from datetime import datetime, timezone
 
-def scheduled_task():
-    print("Задача выполнена!")
+# Сторонние модули
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.triggers.cron import CronTrigger
+import pytz
 
-# Инициализируем и запускаем планировщик
+# Собственные модули
+import config
+
+from database import Session
+
+from routers.auth_tinkoff import check_for_browser, check_for_page
+from routers.directory.tinkoff_expenses import (
+    set_last_error,
+    get_temporary_code,
+    save_expenses_to_db,
+    get_categories_with_keywords
+)
+
+from utils.tinkoff.tinkoff_auth import otp_page
+from utils.tinkoff.time_utils import get_period_range
+from utils.tinkoff.browser_manager import BrowserManager
+from utils.tinkoff.browser_utils import (
+    detect_page_type, 
+    PageType, 
+    detect_page_type_after_url_change
+)
+from utils.tinkoff.expenses_utils import (
+    expenses_redirect,
+    download_csv_from_expenses_page,
+    get_json_expenses_from_csv,
+    wait_for_new_download
+)
+
+
+# Часовой пояс Москвы
+moscow_tz = pytz.timezone("Europe/Moscow")
+
+
+async def load_expenses():
+    print(f"Начата автозагрузка расходов (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')})")
+    retries = 3
+    attempts_completed = 0
+    last_error = ""
+    db = None
+    browser = None
+
+    while attempts_completed < retries:
+        try:
+            db = Session()
+
+            if await check_for_page(browser):
+                browser.reset_interaction_time()
+            elif await check_for_browser(browser):
+                await browser.create_context_and_page()
+            else:
+                browser = BrowserManager(config.PATH_TO_CHROME_PROFILE,
+                                        config.DOWNLOAD_DIRECTORY,
+                                        config.BROWSER_TIMEOUT)
+                await browser.create_context_and_page()
+            
+            await browser.page.goto(config.EXPENSES_URL, timeout=30000)  # Переход на страницу расходов
+            detected_type = await detect_page_type(browser, 20)  # Асинхронное определение типа страницы
+
+            if detected_type:
+                # Отмена входа по смс, переход на вход через номер телефона
+                if detected_type == PageType.EXPENSES:
+                    pass
+                
+                elif detected_type == PageType.LOGIN_OTP:
+                    otp = ""
+                    try:
+                        otp = get_temporary_code(db)
+                    except ValueError:
+                        attempts_completed = retries
+                        raise
+                    except:
+                        raise
+
+                    initial_url = browser.page.url
+                    await otp_page(browser, otp)
+                    if await detect_page_type_after_url_change(browser, initial_url, 15) != PageType.EXPENSES:
+                        raise Exception("Временная проблема автозагрузки")
+
+                else:
+                    raise Exception("Проблема со входом при автозагрузке. Требуется повторный вход")
+                
+            else:
+                raise Exception("Проблема с определением типа страницы при автозагрузке расходов")
+
+            unix_range_start, unix_range_end = get_period_range(
+                timezone="Europe/Moscow",
+                range_start=None,
+                range_end=None,
+                period="week"
+            )
+            await load_expenses_from_site(browser, unix_range_start, unix_range_end, db, "Europe/Moscow")
+            print(f"Успешно завершена автозагрузка расходов (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')})")
+            if browser:
+                await browser.close_browser()
+            return
+        except Exception as e:
+            last_error = e
+            attempts_completed += 1
+
+    print(f"Автозагрузка расходов завершена с ошибкой (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')}) : ${last_error}")
+    if browser:
+        await browser.close_browser()
+    if db:
+        set_last_error(db, str(last_error))
+    else:
+        print(f"Невозможно записать сообщение об ошибке в БД. Ошибка: {last_error}")
+
+
+# Обёртка для вызова асинхронной функции в синхронном контексте
+def async_to_sync(async_func):
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        # Если нет текущего цикла событий, создаём новый
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+    return loop.run_until_complete(async_func())
+
+
 def start_scheduler():
-    scheduler = AsyncIOScheduler(timezone=timezone('Europe/Moscow'))
-    scheduler.add_job(scheduled_task, CronTrigger(hour=1, minute=8))
+    scheduler = BackgroundScheduler(timezone=moscow_tz)
+    # Используем обёртку для вызова асинхронной функции
+    scheduler.add_job(lambda: async_to_sync(load_expenses), CronTrigger(hour=22, minute=57, timezone=moscow_tz))
     scheduler.start()
+    try:
+        while True:
+            time.sleep(1)  # Поддерживаем поток активным
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.shutdown()
 
-# Запуск в отдельном потоке
-scheduler_thread = threading.Thread(target=start_scheduler)
-scheduler_thread.start()
+
+async def load_expenses_from_site(browser, unix_range_start, unix_range_end, db, time_zone):
+    """
+    Возвращает расходы с расходов Тинькофф.
+    """
+    try:
+        # Перенаправление на страницу по периоду и скачивание CSV
+        if await expenses_redirect(browser.page, unix_range_start, unix_range_end):
+            time.sleep(1)  # Ожидание после перенаправления
+
+        start_time = time.time()
+        await download_csv_from_expenses_page(browser.page, 20)
+        file_path = await wait_for_new_download(start_time=start_time, timeout=20)
+
+        # Обработка CSV и сохранение в БД
+        categories_dict = get_categories_with_keywords(db)
+        expenses = await get_json_expenses_from_csv(file_path, categories_dict, time_zone)
+        save_expenses_to_db(db, expenses["expenses"], time_zone)
+
+        return expenses
+    except:
+        raise Exception("Ошибка при загрузке расходов с Тинькофф")

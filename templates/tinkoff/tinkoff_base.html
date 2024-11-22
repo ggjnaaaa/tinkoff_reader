@@ -7,6 +7,9 @@
     <title>{% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="/static/style.css">
     <link rel="stylesheet" href="/static/tinkoff_style.css">
+    <link rel="stylesheet" href="/static/tinkoff-style-mobile.css" media="(max-width: 600px)">
+    <link rel="stylesheet" href="/static/tinkoff-style-tablet.css" media="(min-width: 601px) and (max-width: 1024px)">
+    <link rel="stylesheet" href="/static/tinkoff-style-desktop.css" media="(min-width: 1025px)">
     {% block head %}{% endblock %}
 </head>
 
@@ -20,7 +23,7 @@
 
                 {% endblock %}
                 <!-- Кнопка для отключения (крестик) -->
-                <disconnect-button></disconnect-button>
+                <div class="disconnect-button"><disconnect-button></disconnect-button></div>
             </div>
             <script src="/static/scripts/tinkoff/controls/disconnect-button.js" defer></script>
 

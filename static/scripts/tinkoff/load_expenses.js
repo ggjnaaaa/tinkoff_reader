@@ -32,11 +32,14 @@ async function loadExpensesByDefaultPeriod(period = 'month') {
     showGlobalLoader();
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+    let isRedirect = false;
+
     try {
-        const response = await fetch(`/tinkoff/expenses/?period=${period}&time_zone=${userTimeZone}`, {
+        const response = await fetch(`/tinkoff/expenses/?period=${period}&time_zone=${userTimeZone}&source=${currentDataSource}`, {
+            method: "GET",
             headers: {
-                "X-Requested-With": "XMLHttpRequest"
-            }
+                "X-Requested-With": "XMLHttpRequest",
+            },
         });
         history.pushState(null, null, `/tinkoff/expenses/?period=${period}&time_zone=${userTimeZone}`);
 
@@ -48,7 +51,7 @@ async function loadExpensesByDefaultPeriod(period = 'month') {
                 showSessionExpiredModal(errorData.detail);
             }
             else {
-                showErrorToast(errorData.detail);
+                showErrorToast(errorData.detail || "Неизвестная ошибка. Повторите попытку позже.");
                 console.error('Ошибка при загрузке расходов:', error);
             }
             return;
@@ -56,11 +59,29 @@ async function loadExpensesByDefaultPeriod(period = 'month') {
 
         const data = await response.json();
 
+        if (data.redirect_url) {
+            window.location.href = data.redirect_url;
+            isRedirect = true;
+            return;
+        }
+
+        if (data.error_message) {
+            showErrorToast(data.error_message);
+            return;
+        }
+
+        if (data.expenses.length === 0) {
+            showErrorToast("Нет данных за выбранный период.");
+            return;
+        }
+
         await loadExpenses(data);
     } catch (error) {
         console.error('Ошибка при загрузке расходов:', error);
     } finally {
-        hideGlobalLoader();
+        if (!isRedirect) {
+            hideGlobalLoader();
+        }
     }
 }
 
@@ -69,8 +90,11 @@ async function loadExpensesByPeriod(startDate, endDate) {
     showGlobalLoader();
     const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+    let isRedirect = false;
+
     try {
-        const response = await fetch(`/tinkoff/expenses/?rangeStart=${startDate}&rangeEnd=${endDate}&time_zone=${userTimeZone}`, {
+        const response = await fetch(`/tinkoff/expenses/?rangeStart=${startDate}&rangeEnd=${endDate}&time_zone=${userTimeZone}&source=${currentDataSource}`, {
+            method: "GET",
             headers: {
                 "X-Requested-With": "XMLHttpRequest"
             }
@@ -85,7 +109,7 @@ async function loadExpensesByPeriod(startDate, endDate) {
                 showSessionExpiredModal(errorData.detail);
             }
             else {
-                showErrorToast(errorData.detail);
+                showErrorToast(errorData.detail || "Неизвестная ошибка. Повторите попытку позже.");
                 console.error('Ошибка при загрузке расходов:', error);
             }
             return;
@@ -93,10 +117,28 @@ async function loadExpensesByPeriod(startDate, endDate) {
 
         const data = await response.json();
 
+        if (data.message === "Необходима авторизация") {
+            window.location.href = data.redirect_url;
+            isRedirect = true;
+            return;
+        }
+
+        if (data.error_message) {
+            showErrorToast(data.error_message);
+            return;
+        }
+
+        if (data.expenses.length === 0) {
+            showInfoToast("Нет данных за выбранный период.");
+            return;
+        }
+
         await loadExpenses(data);
     } catch (error) {
         console.error('Ошибка при загрузке расходов:', error);
     } finally {
-        hideGlobalLoader();
+        if (!isRedirect) {
+            hideGlobalLoader();
+        }
     }
 } 

@@ -1,0 +1,27 @@
+.button-container {
+    display: flex !important;
+    align-items: center;
+    margin-right: 7%;
+    font-size: 11px;
+    gap: 20px !important;
+    width: 170px;
+}
+
+button#loadTinkoffExpenses {
+    height: 31px;
+    text-wrap-mode: nowrap;
+}
+
+.disconnect-button {
+    display: flex;
+}
+
+/* Для страницы расходов */
+/* Основной стиль для таблицы расходов */
+.expenses-table {
+    width: 98%;
+    border-collapse: collapse;
+    font-size: 75%;
+    margin-top: 2em;
+}
+

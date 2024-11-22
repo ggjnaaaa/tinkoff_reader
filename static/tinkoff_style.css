@@ -1,3 +1,9 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 h1 {
     font-size: 200%;
     color: #004080;
@@ -20,7 +26,7 @@ label {
 button { 
     position: relative;
     padding: 8px 16px;
-    font-size: 90%;
+    font-size: 12px;
     border: none;
     cursor: pointer;
     border-radius: 5px;
@@ -39,25 +45,70 @@ button:hover {
     background-color: #003366;
 }
 
+/* Выбор способа выгрузки */
+.download_selection {
+    position: relative;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* Меньший отступ между кнопками */
+}
+
+.radio-option {
+    display: flex;
+    align-items: center;
+    font-size: 12px; /* Уменьшаем текст */
+    font-family: Arial, sans-serif;
+    color: #333;
+    cursor: pointer;
+    position: relative;
+    padding-left: 24px; /* Уменьшенный отступ для кастомной кнопки */
+}
+
+.radio-option input[type="radio"] {
+    display: none; /* Прячем стандартное радио */
+}
+
+.radio-option .custom-radio {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px; /* Меньше размер кружка */
+    height: 14px;
+    border: 2px solid #007BFF; /* Цвет обводки кружочка */
+    border-radius: 50%;
+    background-color: #fff;
+    transition: background-color 0.2s, box-shadow 0.2s;
+}
+
+.radio-option input[type="radio"]:checked + .custom-radio {
+    background-color: #007BFF; /* Цвет заливки, когда выбрано */
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.3); /* Эффект подсветки */
+}
+
+.radio-option .custom-radio::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px; /* Меньше размер точки внутри */
+    height: 6px;
+    background-color: #fff;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.radio-option input[type="radio"]:checked + .custom-radio::after {
+    opacity: 1; /* Точка появляется при выборе */
+}
+
 #periodButton {
     display: inline-block;
     position: relative;
-}
-
-.button-container {
-    display: flex;
-    /*gap: 5%; /* Задаёт расстояние между кнопками */
-    align-items: center;
-    margin-right: 7%;
-    font-size: 11px;
-}
-
-button#loadTinkoffExpenses {
-    height: 31px;
-}
-
-disconnect-button {
-    display: inline-block;
 }
 
 /* Для страницы расходов */
@@ -77,6 +128,8 @@ disconnect-button {
     color: black;
     padding: 5px 10px;
     width: 100%;
+    height: 30px;
+    margin-top: 0;
     border: none;
     text-align: left;
 }
@@ -85,14 +138,7 @@ disconnect-button {
     background-color: #e0f7ff;
 }
 
-/* Основной стиль для таблицы расходов */
-.expenses-table {
-    width: 98%;
-    border-collapse: collapse;
-    font-size: 90%;
-    margin-top: 2em;
-}
-
+/* Таблица расходов*/
 .expenses-table th, .expenses-table td {
     padding: 12px;
     text-align: left;
@@ -147,43 +193,6 @@ input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
     appearance: none;
     margin: 0;
-}
-
-/* Стили модальных окон */
-.modal {
-    display: none; /* Скрываем по умолчанию */
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    overflow: auto;
-    background-color: rgba(0, 0, 0, 0.4);
-}
-
-.modal-content {
-    background-color: #fefefe;
-    margin: 15% auto;
-    padding: 20px;
-    border: 1px solid #888;
-    width: 300px;
-    text-align: center;
-}
-
-.close {
-    color: #aaa;
-    float: right;
-    font-size: 28px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.close:hover,
-.close:focus {
-    color: black;
-    text-decoration: none;
-    cursor: pointer;
 }
 
 /* Блокировщик контента */

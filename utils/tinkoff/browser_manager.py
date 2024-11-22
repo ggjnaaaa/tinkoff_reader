@@ -6,6 +6,7 @@ import asyncio, shutil, os, json
 # Сторонние модули
 from playwright.async_api import async_playwright
 
+
 class BrowserManager:
     def __init__(self, path_to_profile, download_dir, timeout):
         """Инициализация BrowserManager с путем к профилю, папкой загрузок и таймаутом."""
@@ -17,16 +18,18 @@ class BrowserManager:
         self.page = None
         self.last_interaction_time = None
 
+
     async def initialize_browser(self):
         """Инициализирует браузер, если он еще не запущен."""
         if self.browser is None:
             play = await async_playwright().start()
             self.browser = await play.chromium.launch(
-                headless=True,
+                headless=False,
                 args=["--start-maximized", '--disable-blink-features=AutomationControlled'],
                 downloads_path = self.download_dir
             )
             print("Браузер запущен")
+
 
     async def create_context_and_page(self):
         """Создает контекст и страницу, если они не активны."""
@@ -51,7 +54,8 @@ class BrowserManager:
 
         # Обновляем время последнего взаимодействия
         self.reset_interaction_time()
-        asyncio.create_task(self.close_after_timeout())
+        self.close_task = asyncio.create_task(self.close_after_timeout())
+
 
     async def close_context_and_page(self):
         """Закрывает контекст и страницу, сохраняет состояние."""
@@ -64,14 +68,17 @@ class BrowserManager:
 
             await self.clearing_downloads_directory()
     
+
     async def save_browser_cache(self):
         if self.context:
             storage_state_file = os.path.join(self.path_to_profile, "storage_state.json")
             await self.context.storage_state(path=storage_state_file)
 
+
     def reset_interaction_time(self):
         """Сбрасывает таймер последнего взаимодействия."""
         self.last_interaction_time = asyncio.get_event_loop().time()
+
 
     async def close_after_timeout(self):
         """Закрывает контекст и страницу, если время ожидания превышено."""
@@ -81,10 +88,20 @@ class BrowserManager:
                 await self.close_context_and_page()
                 break
 
+
     async def clearing_downloads_directory(self):
-        """Очищает директорию загрузок."""
+        """
+        Очищает директорию загрузок, исключая файлы с определёнными именами.
+        """
+        excluded_files = { "shrek_is_the_best_movie_ever_dont_delete_this_file_or_you_will_regret_it.txt" }  # Имена файлов, которые не нужно удалять
+
         for filename in os.listdir(self.download_dir):
             file_path = os.path.join(self.download_dir, filename)
+            
+            # Проверяем, не входит ли файл в список исключений
+            if filename in excluded_files:
+                continue
+
             try:
                 if os.path.isfile(file_path) or os.path.islink(file_path):
                     os.unlink(file_path)
@@ -93,10 +110,12 @@ class BrowserManager:
             except Exception as e:
                 print(f"Ошибка при очистке файла {file_path}: {str(e)}")
 
+
     async def is_browser_active(self):
         """Проверяет, подключен ли браузер и активен ли он."""
         return self.browser and self.browser.is_connected()
     
+
     async def is_page_active(self):
         """Проверяет, работает ли страница."""
         try:
@@ -107,9 +126,11 @@ class BrowserManager:
         except Exception as e:
             return False
 
+
     async def close_browser(self):
         """Закрывает браузер и освобождает ресурсы."""
         if self.browser:
+            await self.clearing_downloads_directory()
             await self.browser.close()
             self.browser = None
             print("Браузер закрыт")

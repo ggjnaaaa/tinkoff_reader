@@ -1,9 +1,13 @@
-from sqlalchemy.orm import Session, selectinload
-from datetime import datetime, timedelta
+# tinkoff_expenses.py
+
+# Стандартные модули Python
+from typing import Optional
+from datetime import datetime
+
+# Сторонние модули
+from sqlalchemy.orm import Session
 from sqlalchemy import and_, desc
 from sqlalchemy.future import select
-from typing import Optional, List, Dict
-from fastapi import HTTPException, Query
 from sqlalchemy.exc import IntegrityError
 
 # Собственные модули
@@ -11,6 +15,7 @@ from utils.tinkoff.time_utils import (
     get_unix_time_ms_from_string,
     convert_unix_to_local_datetime
 )
+
 from models import (
     Expense, 
     CategoryExpenses,
@@ -19,23 +24,25 @@ from models import (
     LastError
 ) 
 
+
 def get_expenses_from_db(
     db: Session,
     unix_range_start: Optional[int] = None,
     unix_range_end: Optional[int] = None,
-    timezone_str: str = "Europe/Moscow"  # Указание часового пояса
+    timezone_str: str = "Europe/Moscow"
 ):
     """
     Получение расходов за выбранный период из базы данных.
     """
     query = db.query(Expense)
     
+    # Фильтрация по дате
     if unix_range_start:
         query = query.filter(Expense.timestamp >= unix_range_start)
     if unix_range_end:
         query = query.filter(Expense.timestamp <= unix_range_end)
 
-    query = query.order_by(desc(Expense.timestamp))
+    query = query.order_by(desc(Expense.timestamp))  # Сортировка по убыванию даты
     expenses = query.all()
     
     # Получаем уникальные карты
@@ -70,12 +77,20 @@ def get_expenses_from_db(
         "message": period_message
     }
 
+
 def get_category_from_description(categories_dict, current_expense):
+    """
+    Получение категории по описанию.
+    """
     for category_title, data in categories_dict.items():
         if any(keyword.lower() in current_expense.description.lower() for keyword in data["keywords"]):
             return category_title
 
+
 def save_expenses_to_db(db, expenses, time_zone):
+    """
+    Сохранение расходов в бд.
+    """
     for expense in expenses:
         # Перевод времени в Unix-формат
         timestamp = get_unix_time_ms_from_string(expense["date_time"], time_zone)
@@ -122,7 +137,7 @@ def get_categories_from_db(db):
     categories_list = [
         {
             "id": category.id,
-            "category_name": category.title  # Здесь название поля совпадает с ожидаемым в JavaScript
+            "category_name": category.title
         }
         for category in categories
     ]
@@ -149,7 +164,11 @@ def get_categories_with_keywords(db: Session):
     
     return categories_dict
 
+
 def save_keyword_to_db(db: Session, description: str, category_id: int):
+    """
+    Сохранение ключевых слов в бд.
+    """
     # Проверяем, если ключевое слово уже существует в таблице, независимо от категории
     existing_keyword = db.query(CategoryKeyword).filter(
         CategoryKeyword.keyword == description
@@ -177,13 +196,20 @@ def save_keyword_to_db(db: Session, description: str, category_id: int):
     
     return
 
+
 def remove_keyword_from_category(db: Session, description: str):
-    """Удаление ключевого слова из всех категорий."""
+    """
+    Удаление ключевого слова из всех категорий.
+    """
     db.query(CategoryKeyword).filter(CategoryKeyword.keyword == description).delete(synchronize_session=False)
     db.commit()
     print(f"Ключевое слово '{description}' удалено из всех категорий.")
 
+
 def generate_period_message(min_timestamp, max_timestamp, unix_range_start, unix_range_end):
+    """
+    Генерация сообщения о загрузке данных в бд.
+    """
     unix_ms_day = 24 * 60 * 60 * 1000
 
     if min_timestamp - unix_range_start < unix_ms_day and unix_range_end - max_timestamp < unix_ms_day:
@@ -195,8 +221,11 @@ def generate_period_message(min_timestamp, max_timestamp, unix_range_start, unix
     else:
         return "Данные были загружены из БД. Часть данных за выбранный период отсутствует"
 
+
 def set_temporary_code(db: Session, code: str):
-    """Задать новый временный код, перезаписывая старый, если он есть."""
+    """
+    Задать новый временный код, перезаписывая старый, если он есть.
+    """
     existing_code = db.query(TemporaryCode).first()
     if existing_code:
         existing_code.code = code
@@ -205,8 +234,32 @@ def set_temporary_code(db: Session, code: str):
         db.add(new_code)
     db.commit()
 
+
+def get_temporary_code(db: Session) -> str:
+    """
+    Получить временный код. 
+    Если записей нет или их больше одной, выбросить ошибку. 
+    При наличии нескольких записей удалить лишние.
+    """
+    codes = db.query(TemporaryCode).all()
+
+    if not codes:
+        raise ValueError("Временный код не найден.")
+    
+    if len(codes) > 1:
+        # Удаляем все записи и выбрасываем ошибку
+        db.query(TemporaryCode).delete()
+        db.commit()
+        raise ValueError("Найдено несколько временных кодов. Все записи удалены.")
+
+    # Если есть только одна запись, возвращаем её код
+    return codes[0].code
+
+
 def set_last_error(db: Session, error_text: str):
-    """Записать последнюю ошибку, перезаписывая старую запись, если она есть."""
+    """
+    Записать последнюю ошибку, перезаписывая старую запись, если она есть.
+    """
     existing_error = db.query(LastError).first()
     if existing_error:
         existing_error.error_text = error_text
@@ -216,13 +269,19 @@ def set_last_error(db: Session, error_text: str):
         db.add(new_error)
     db.commit()
 
+
 def delete_last_error(db: Session):
-    """Удалить последнюю ошибку из базы данных."""
+    """
+    Удалить последнюю ошибку из базы данных.
+    """
     db.query(LastError).delete()
     db.commit()
 
+
 def get_last_unreceived_error(db: Session):
-    """Получить последнюю неполученную ошибку и отметить её как полученную."""
+    """
+    Получить последнюю неполученную ошибку и отметить её как полученную.
+    """
     last_error = db.query(LastError).filter_by(is_received=False).order_by(LastError.error_time.desc()).first()
     if last_error:
         last_error.is_received = True  # Отмечаем ошибку как полученную

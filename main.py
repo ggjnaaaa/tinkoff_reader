@@ -2,8 +2,8 @@
 
 # Сторонние библиотеки
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from threading import Thread
 
 # Собственные модули
 from routers import (
@@ -12,6 +12,7 @@ from routers import (
     general,
     start
 )
+from utils.tinkoff.fixed_time_import_expenses import start_scheduler
  
 # FastAPI и роутер
 app = FastAPI()
@@ -22,3 +23,7 @@ app.include_router(auth_tinkoff.router)
 app.include_router(expenses.router)
 app.include_router(general.router)
 app.include_router(start.router)
+
+# Запуск планировщика в отдельном потоке
+scheduler_thread = Thread(target=start_scheduler, daemon=True)
+scheduler_thread.start()
