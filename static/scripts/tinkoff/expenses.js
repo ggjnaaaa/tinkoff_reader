@@ -145,7 +145,12 @@ async function saveKeywords() {
 
     document.querySelectorAll('.category-select').forEach(select => {
         const categoryName = select.options[select.selectedIndex].textContent;
-        const description = select.closest('tr').querySelector('td:nth-child(4)').textContent;
+        let description = null;
+        if (is_for_one_card) {
+            description = select.closest('tr').querySelector('td:nth-child(2)').textContent;
+        } else {
+            description = select.closest('tr').querySelector('td:nth-child(4)').textContent;
+        }
 
         // Исключаем записи с категорией "без категории"
         if (description && !keywords.some(keyword => keyword.description === description && keyword.category_name === categoryName)) {

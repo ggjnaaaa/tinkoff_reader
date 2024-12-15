@@ -1,8 +1,9 @@
 class ExpenseManager {
-    constructor(expenses, categories) {
+    constructor(expenses, categories, is_for_one_card) {
         this.originalExpenses = expenses;
         this.filteredExpenses = [...expenses];
-        this.categories = categories; // пример списка категорий
+        this.categories = categories;
+        this.is_for_one_card = is_for_one_card;
 
         // Параметры пагинации
         this.currentPage = 1;
@@ -129,7 +130,22 @@ class ExpenseManager {
                 return `<option value="${cat}" ${selected}>${cat}</option>`;
             }).join('');
 
-            const row = `<tr>
+            let row;
+            if (this.is_for_one_card) {
+                row = `<tr>
+                            <td>${expense.amount} ₽</td>
+                            <td>${expense.description}</td>
+                            <td>
+                                <select class="category-select" 
+                                        data-description="${expense.description}">
+                                    <option></option> <!-- Пустая опция для "без категории" -->
+                                    ${options}
+                                </select>
+                            </td>
+                        </tr>`;
+            }
+            else {
+                row = `<tr>
                             <td>${expense.date_time}</td>
                             <td>${expense.card_number}</td>
                             <td>${expense.amount} ₽</td>
@@ -142,6 +158,8 @@ class ExpenseManager {
                                 </select>
                             </td>
                         </tr>`;
+            }
+            
             tableBody.append(row);
         });
     
@@ -166,6 +184,10 @@ class ExpenseManager {
             const selectedCategory = $(event.target).val();
             const description = $(event.target).data('description');
             this.updateCategory(description, selectedCategory);
+
+            if (this.is_for_one_card) {
+                $('#footer-save').show();
+            }
         });
     }
 }

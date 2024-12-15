@@ -1,0 +1,105 @@
+{% extends "tinkoff/tinkoff_base.html" %}
+
+{% block title %}Расходы{% endblock %}
+
+{% block head %}
+    <!-- Календарь -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/ru.js"></script>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <!--Изменяемые столбцы -->
+    <script src="https://cdn.jsdelivr.net/gh/dobtco/jquery-resizable-columns@0.2.3/dist/jquery.resizableColumns.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/dobtco/jquery-resizable-columns@0.2.3/dist/jquery.resizableColumns.css">
+
+    <!--Выпадающие списки в таблице -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+    <!--Белая тема специально для тг-->
+    <style>
+        body {
+            background-color: white !important;
+            color: black !important;
+        }
+        
+        .disconnect-button {
+            display: none;
+        }
+
+        #footer-save {
+            display: none;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <h1>Ваши расходы</h1>
+    <h2 id="totalExpenses">Общая сумма расходов: 0 ₽</h2>
+
+    <!-- Выпадающий список для выбора периода -->
+    <div style="position: relative;">
+        <button id="periodButton" onclick="togglePeriodOptions()">Этот месяц</button>
+        <div id="periodOptions" class="period-options">
+            <button onclick="loadExpensesByDefaultPeriod('day'); setPeriodLabel('Сегодня')">Сегодня</button>
+            <button onclick="loadExpensesByDefaultPeriod('week'); setPeriodLabel('Текущая неделя')">Текущая неделя</button>
+            <button onclick="loadExpensesByDefaultPeriod('month'); setPeriodLabel('Этот месяц')">Этот месяц</button>
+            <button onclick="loadExpensesByDefaultPeriod('3month'); setPeriodLabel('3 месяца')">3 месяца</button>
+            <button onclick="loadExpensesByDefaultPeriod('year'); setPeriodLabel('Этот год')">Этот год</button>
+        </div>
+    </div>
+
+    <div style="margin-top: 15px;">
+        <label for="dateRange">Выберите период:</label>
+        <input id="dateRange" type="text" placeholder="Выберите период" />
+    </div>
+
+    <table id="expensesTable" class="expenses-table resizable">
+        <thead>
+            <tr>
+                <th>Сумма</th>
+                <th>Описание</th>
+                <th>Статья</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <!-- Пагинация -->
+    <div style="margin-top: 20px; margin-bottom: 15px;">
+        <div id="paginationRowCount">
+            <label for="itemsPerPageSelect">Строк на странице:</label>
+            <select id="itemsPerPageSelect" class="select2">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+        <div id="paginationControls">
+            <!-- Контролы для смены страниц добавляются динамически из renderPaginationControls -->
+        </div>
+    </div>
+
+    <div id="footer-save" style="position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ccc; text-align: center;">
+        <button onclick="saveKeywords()">Сохранить изменения</button>
+    </div>
+
+    <div id="error-message" style="display: none;">
+        {{ error_message }}
+    </div>
+    <div id="expenses" style="display: none;">
+        {{ expenses }}
+    </div>
+    <div id="redirect_url" style="display: none;">
+        {{ redirect_url }}
+    </div>
+{% endblock %}
+
+{% block scripts %}
+    <script src="/static/scripts/tinkoff/expenses.js" defer></script>
+    <script src="/static/scripts/tinkoff/expenses_calendar.js" defer></script>
+    <script src="/static/scripts/tinkoff/load_expenses.js" defer></script>
+    <script src="/static/scripts/tinkoff/expense_manager.js" defer></script>
+{% endblock %}
