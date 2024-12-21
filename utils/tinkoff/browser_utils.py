@@ -20,6 +20,7 @@ class PageType(Enum):
     LOGIN_CREATE_OTP = 'Придумайте код'
     LOGIN_OTP = 'Введите код для быстрого входа'
     EXPENSES = 'Расходы'
+    CONTROL_QUESTIONS = 'Контрольные вопросы'
 
 
     @classmethod
@@ -36,6 +37,7 @@ class PageType(Enum):
     def template_path(self):
         paths = {
             PageType.LOGIN_SMS_CODE: "",
+            PageType.CONTROL_QUESTIONS: "",
             PageType.LOGIN_INPUT_SMS_CODE: "tinkoff/sms_code.html",
             PageType.LOGIN_PHONE: "tinkoff/login_phone.html",
             PageType.LOGIN_PASSWORD: "tinkoff/login_password.html",

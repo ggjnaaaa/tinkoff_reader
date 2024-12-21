@@ -2,6 +2,7 @@
 
 # Стандартные модули Python
 import asyncio
+import os
 
 # Сторонние модули
 from fastapi import APIRouter, HTTPException, Body, Request, Query
@@ -20,7 +21,7 @@ from config import (
 )
 
 from utils.tinkoff.browser_manager import BrowserManager
-from utils.tinkoff.tinkoff_auth import paged_login, close_login_via_sms_page, get_user_name_from_otp_login
+from utils.tinkoff.tinkoff_auth import paged_login, close_login_via_sms_page, get_user_name_from_otp_login, skip_control_questions
 from utils.tinkoff.browser_utils import get_text, detect_page_type, PageType, click_button
 
 
@@ -104,6 +105,9 @@ async def next_page(request: Request, step: str | None = Query(default=None)):
      # Отмена входа по смс, переход на вход через номер телефона
     if page_type == PageType.LOGIN_SMS_CODE:
         page_type = await close_login_via_sms_page(browser)
+    
+    if page_type == PageType.CONTROL_QUESTIONS:
+        page_type = await skip_control_questions(browser)
 
     # Получаем путь к нужному шаблону
     template_path = page_type.template_path()
@@ -186,6 +190,22 @@ async def cancel_otp():
     except Exception as e:
         print(f"Ошибка при нажатии на кнопку: {e}")
         raise HTTPException(status_code=500, detail="Не удалось отменить вход по временному паролю.")
+
+
+@router.post('/tinkoff/reset_session/')
+async def reset_session():
+    if await check_for_browser(browser):
+        await browser.close_browser()
+
+    file_path = "chrome_data/storage_state.json"
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            return {"status": "success", "message": "Сессия сброшена."}
+        else:
+            return {"status": "error", "message": "Файл не найден, сессия уже сброшена."}
+    except Exception as e:
+        return {"status": "error", "message": f"Ошибка при удалении файла: {e}"}
     
 
 async def check_for_browser(browser: BrowserManager):

@@ -20,6 +20,22 @@
 {% endblock %}
 
 {% block content %}
+    <div class="menu-wrapper">
+        <!-- Кнопка-гамбургер -->
+        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+
+        <!-- Боковое меню -->
+        <div id="sideMenu" class="side-menu">
+            <button class="close-btn" onclick="toggleMenu()">&times;</button>
+            <ul>
+                <li><button onclick="loginToTinkoff()">Войти в Тинькофф</button></li>
+                <li><button onclick="resetTinkoffSession()">Сбросить текущую сессию</button></li>
+            </ul>
+        </div>
+    </div>
+
+    <div id="overlay" class="overlay"></div>
+
     <h1>Ваши расходы</h1>
     <h2 id="totalExpenses">Общая сумма расходов: 0 ₽</h2>
 

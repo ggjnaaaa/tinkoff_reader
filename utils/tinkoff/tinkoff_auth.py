@@ -25,6 +25,7 @@ from config import (
     sms_code_input_selector,
     pin_code_input_selector,
     password_input_selector,
+    cancel_button_selector
 )
 
 
@@ -70,6 +71,8 @@ async def route_login_by_page_type(browser: BrowserManager, detected_page, user_
             await create_otp_page(browser=browser, otp_code=user_input)
         elif detected_page == PageType.LOGIN_OTP:
             await otp_page(browser=browser, otp_code=user_input)
+        elif detected_page == PageType.CONTROL_QUESTIONS:
+            await skip_control_questions(browser=browser)
         
         # Проверка наличия сообщения об ошибке
         error_message = await check_for_error_message(browser, 2)
@@ -173,6 +176,19 @@ async def get_user_name_from_otp_login(browser: BrowserManager):
         user_name = 'Пользователь'
 
     return user_name
+
+
+async def skip_control_questions(browser: BrowserManager):
+    """
+    Пропускает создание контрольных вопросов.
+    """
+    try:
+        initial_url = browser.page.url
+        await click_button(page=browser.page, button_selector=cancel_button_selector)
+        time.sleep(1)
+        return await detect_page_type_after_url_change(browser, initial_url)
+    except Exception as e:
+        raise Exception(f"Ошибка при закрытии входа через смс-код: {str(e)}")
 
 
 async def input_and_click_submit(browser: BrowserManager, input_selector: str, user_input: str, timeout: int = 5):
