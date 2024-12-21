@@ -189,4 +189,52 @@ async function saveKeywords() {
 }
 
 
+function toggleMenu() {
+    const menu = document.getElementById('sideMenu');
+    const burger = document.querySelector('.menu-toggle');
+    const overlay = document.getElementById('overlay');
+    
+    // Переключаем класс "active" для меню и оверлея
+    menu.classList.toggle('active');
+    overlay.classList.toggle('active');
 
+    // Прячем/показываем кнопку-бургер
+    burger.classList.toggle('hidden');
+}
+
+function closeMenu() {
+    const menu = document.getElementById('sideMenu');
+    const burger = document.querySelector('.menu-toggle');
+    const overlay = document.getElementById('overlay');
+
+    menu.classList.remove('active');
+    overlay.classList.remove('active');
+    burger.classList.remove('hidden');
+}
+
+// Закрыть меню при нажатии вне области меню
+document.getElementById('overlay').addEventListener('click', closeMenu);
+
+function loginToTinkoff() {
+    window.location.href = '/tinkoff/';
+}
+
+function resetTinkoffSession() {
+    fetch('/tinkoff/reset_session/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotificationToast(data.message);
+        } else {
+            showErrorToast(`Ошибка: ${data.message}`);
+        }
+    })
+    .catch(error => {
+        alert(`Произошла ошибка: ${error}`);
+    });
+}
