@@ -1,0 +1,25 @@
+{% extends "tinkoff/tinkoff_base.html" %}
+
+{% block title %}Спасибо за вход{% endblock %}
+
+{% block head %}
+    <style>
+        .disconnect-button {
+            display: none;
+        }
+
+        #thanks {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <div id="thanks">
+        <h3>Спасибо за вход, автозагрузка возобновится в ближайшее время!</h3>
+    </div>    
+{% endblock %}

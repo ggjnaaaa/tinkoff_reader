@@ -60,19 +60,32 @@ class BrowserManager:
     async def close_context_and_page(self):
         """Закрывает контекст и страницу, сохраняет состояние."""
         if self.context:
-            await self.save_browser_cache()
-            await self.context.close()
+            try:
+                await self.save_browser_cache()
+            except Exception as e:
+                print(f"Ошибка при сохранении состояния: {e}")
+            
+            try:
+                await self.context.close()
+            except Exception as e:
+                print(f"Ошибка при закрытии контекста: {e}")
+            
             self.context = None
             self.page = None
             print("Контекст и страница закрыты")
 
-            await self.clearing_downloads_directory()
+        await self.clearing_downloads_directory()
+
     
 
     async def save_browser_cache(self):
         if self.context:
             storage_state_file = os.path.join(self.path_to_profile, "storage_state.json")
-            await self.context.storage_state(path=storage_state_file)
+            try:
+                await self.context.storage_state(path=storage_state_file)
+            except Exception as e:
+                print(f"Ошибка при сохранении состояния браузера: {e}")
+
 
 
     def reset_interaction_time(self):
@@ -129,8 +142,18 @@ class BrowserManager:
 
     async def close_browser(self):
         """Закрывает браузер и освобождает ресурсы."""
+        if hasattr(self, 'close_task') and not self.close_task.done():
+            self.close_task.cancel()
+            try:
+                await self.close_task
+            except asyncio.CancelledError:
+                pass
+
         if self.browser:
             await self.clearing_downloads_directory()
-            await self.browser.close()
+            try:
+                await self.browser.close()
+            except Exception as e:
+                print(f"Ошибка при закрытии браузера: {e}")
             self.browser = None
             print("Браузер закрыт")

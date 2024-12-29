@@ -24,6 +24,8 @@ from models import (
     LastError
 ) 
 
+from config import TRANSFER_NOTIFICATION_USERS
+
 
 def get_expenses_from_db(
     db: Session,
@@ -45,7 +47,12 @@ def get_expenses_from_db(
 
     # Фильтрация по номеру карты
     if card_number:
-        query = query.filter(Expense.card_number == "*" + card_number)
+        if card_number in TRANSFER_NOTIFICATION_USERS:
+            query = query.filter(
+                (Expense.card_number == "*" + card_number) | (Expense.card_number == "")
+            )
+        else:
+            query = query.filter(Expense.card_number == "*" + card_number)
 
     query = query.order_by(desc(Expense.timestamp))  # Сортировка по убыванию даты
     expenses = query.all()
@@ -158,24 +165,37 @@ def get_categories_from_db(db):
     return categories_list
 
 
-def get_categories_with_keywords(db: Session):
+def get_categories_with_keywords(db):
     """
     Получение категорий с ключевыми словами из базы данных.
     """
-    # Запрашиваем категории и присоединяем к ним ключевые слова с помощью join
-    query = db.query(CategoryExpenses, CategoryKeyword.keyword).join(
-        CategoryKeyword, CategoryKeyword.category_id == CategoryExpenses.id, isouter=True
+    # Запрашиваем категории и ключевые слова
+    query = (
+        select(
+            CategoryExpenses.id,  # ID категории
+            CategoryExpenses.title,  # Название категории
+            CategoryKeyword.keyword  # Ключевое слово
+        )
+        .join(
+            CategoryKeyword,
+            CategoryKeyword.category_id == CategoryExpenses.id,
+            isouter=True  # Левое соединение, чтобы захватить категории без ключевых слов
+        )
     )
-
-    # Извлекаем данные из результата запроса
-    categories_dict = {}
-    for category, keyword in query.all():
-        if category.title not in categories_dict:
-            categories_dict[category.title] = {"keywords": []}
-        if keyword:
-            categories_dict[category.title]["keywords"].append(keyword)
+    result = db.execute(query)
     
-    return categories_dict
+    # Обрабатываем результат
+    categories = {}
+    for category_id, category_title, keyword in result:
+        if category_id not in categories:
+            categories[category_title] = {
+                "id": category_id,
+                "keywords": []
+            }
+        if keyword:  # Добавляем только существующие ключевые слова
+            categories[category_title]["keywords"].append(keyword)
+    
+    return categories
 
 
 def save_keyword_to_db(db: Session, description: str, category_id: int):

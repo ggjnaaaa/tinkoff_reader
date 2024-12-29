@@ -35,7 +35,7 @@ def create_temp_token(data: dict, expires_delta: timedelta = timedelta(minutes=1
     return token
 
 
-def verify_token(token: str) -> dict:
+def verify_bot_token(token: str) -> dict:
     """
     Проверяет и декодирует токен с бота.
     """
