@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 
 from routers.directory.bot import check_user_and_store_tg_tmp_user, get_card_number_by_chat_id
 from database import Session
-from auth import verify_token
+from auth import verify_bot_token
 
 from routers.directory.tinkoff_expenses import get_expenses_from_db
 
@@ -38,7 +38,7 @@ async def check_access(request: TokenizedUrlRequest, db: Session = Depends(get_d
     """
     try:
         # Проверяем токен
-        user_data = verify_token(request.token)
+        user_data = verify_bot_token(request.token)
 
         # Получаем данные пользователя
         tg_nickname = user_data.get("username")
@@ -74,7 +74,7 @@ async def get_bot_expenses(
     card_num = None
     try:
         # Проверяем токен и извлекаем данные
-        user_data = verify_token(token)
+        user_data = verify_bot_token(token)
         chat_id = int(user_data.get("chat_id"))
         auth_date = int(user_data.get("auth_date", 0))
 

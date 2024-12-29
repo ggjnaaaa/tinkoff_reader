@@ -53,7 +53,7 @@ async def load_expenses_from_site(browser, unix_range_start, unix_range_end, db,
         if await expenses_redirect(browser.page, unix_range_start, unix_range_end):
             await save_browser_cache()
             time.sleep(1)  # Ожидание после перенаправления
-
+        
         start_time = time.time()
         await download_csv_from_expenses_page(browser.page, 20)
         file_path = await wait_for_new_download(start_time=start_time, timeout=20)

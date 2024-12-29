@@ -1,4 +1,4 @@
-﻿# tinkoff_auth.py
+﻿# utils/browser_input_utils.py
 
 # Стандартные модули Python
 import time
@@ -197,6 +197,7 @@ async def input_and_click_submit(browser: BrowserManager, input_selector: str, u
     """
     try:
         page = browser.page
+        
         await write_input(page, input_selector, user_input, timeout)
 
         error_message = await check_for_error_message(browser, 1)

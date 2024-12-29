@@ -9,9 +9,18 @@ DOWNLOAD_DIRECTORY="/home/ggjnaaaa/myProgs/tinkoff_reader/downloads/"
 
 BOT_API_URL = "http://127.0.0.1:8001/"
 AUTO_SAVE_MAILING_BOT_API_URL = f"{BOT_API_URL}tinkoff/auto-save_mailing/"
+AUTO_SAVE_ERROR_MAILING_BOT_API_URL = f"{BOT_API_URL}tinkoff/auto-save_error_mailing/"
 
-BOT_TOKEN = "7884988975:AAGqfN9bFvkeZysGMuxGSIHoUT6bvlXKcME"
+BOT_TOKEN = "7884988975:AAGn2L1NCqV50ZY4VMe4hOqMzZTd2gamzrI"
 BOT_SECRET_KEY = hashlib.sha256(BOT_TOKEN.encode()).digest()
+
+ERROR_NOTIFICATION_USERS = [                                            # Список пользователей которым надо рассылать сообщение об ошибке автовыгрузки
+    '7511'
+]
+
+TRANSFER_NOTIFICATION_USERS = [                                         # Список пользователей которым надо рассылать дополнительно переводы
+    '1234'
+]
 
 # Работа с драйвером
 browser_instance: BrowserManager = None
