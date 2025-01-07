@@ -45,6 +45,9 @@ from utils.tinkoff.expenses_utils import (
 )
 
 
+from routers.bot_air_balon import sync_expenses_to_sheet
+
+
 # Часовой пояс Москвы
 moscow_tz = pytz.timezone("Europe/Moscow")
 
@@ -61,7 +64,7 @@ async def load_expenses():
         try:
             db = Session()
 
-            if await check_for_page(browser):
+            '''if await check_for_page(browser):
                 browser.reset_interaction_time()
             elif await check_for_browser(browser):
                 await browser.create_context_and_page()
@@ -109,8 +112,9 @@ async def load_expenses():
             await load_expenses_from_site(browser, unix_range_start, unix_range_end, db, "Europe/Moscow")
             print(f"Успешно завершена автозагрузка расходов (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')})")
             if browser:
-                await browser.close_browser()
+                await browser.close_browser()'''
             send_expense_notification(db)
+            sync_expenses_to_sheet(db, "year")
             return
         except Exception as e:
             last_error = e
@@ -123,6 +127,9 @@ async def load_expenses():
         set_last_error(db, str(last_error))
     else:
         print(f"Невозможно записать сообщение об ошибке в БД. Ошибка: {last_error}")
+
+    print("HLYGUK")
+    sync_expenses_to_sheet(db, "year")
 
     get_error_notification_chat_ids(db, config.ERROR_NOTIFICATION_USERS)
 
@@ -141,7 +148,7 @@ def async_to_sync(async_func):
 def start_scheduler():
     scheduler = BackgroundScheduler(timezone=moscow_tz)
     # Используем обёртку для вызова асинхронной функции
-    scheduler.add_job(lambda: async_to_sync(load_expenses), CronTrigger(hour=22, minute=40, timezone=moscow_tz))
+    scheduler.add_job(lambda: async_to_sync(load_expenses), CronTrigger(hour=5, minute=53, timezone=moscow_tz))
     scheduler.start()
     try:
         while True:
@@ -178,7 +185,7 @@ def send_expense_notification(db):
     Вызывает эндпоинт на сервере бота для рассылки уведомлений пользователям у которых были расходы за сегодня.
     """
     try:
-        unique_cards = [card.lstrip('*') for card in get_today_uniq_cards(db)]  # Убираем звезды из начала карт
+        unique_cards = ["7511"] #[card.lstrip('*') for card in get_today_uniq_cards(db)]  # Убираем звезды из начала карт
 
         if not unique_cards:
             return

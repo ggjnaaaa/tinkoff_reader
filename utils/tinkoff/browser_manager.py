@@ -76,7 +76,6 @@ class BrowserManager:
 
         await self.clearing_downloads_directory()
 
-    
 
     async def save_browser_cache(self):
         if self.context:
@@ -85,7 +84,6 @@ class BrowserManager:
                 await self.context.storage_state(path=storage_state_file)
             except Exception as e:
                 print(f"Ошибка при сохранении состояния браузера: {e}")
-
 
 
     def reset_interaction_time(self):

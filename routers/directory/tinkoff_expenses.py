@@ -32,7 +32,8 @@ def get_expenses_from_db(
     unix_range_start: Optional[int] = None,
     unix_range_end: Optional[int] = None,
     timezone_str: str = "Europe/Moscow",
-    card_number: Optional[str] = None
+    card_number: Optional[str] = None,
+    sort_order: str = "desc"  # Новый параметр: "asc" (от раннего) или "desc" (от позднего)
 ):
     """
     Получение расходов за выбранный период из базы данных.
@@ -54,7 +55,12 @@ def get_expenses_from_db(
         else:
             query = query.filter(Expense.card_number == "*" + card_number)
 
-    query = query.order_by(desc(Expense.timestamp))  # Сортировка по убыванию даты
+    # Сортировка по дате
+    if sort_order == "desc":
+        query = query.order_by(desc(Expense.timestamp))  # Сортировка от позднего к раннему
+    else:
+        query = query.order_by(Expense.timestamp)  # Сортировка от раннего к позднему
+
     expenses = query.all()
 
     # Определяем минимальный и максимальный timestamp

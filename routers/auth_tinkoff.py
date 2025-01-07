@@ -25,6 +25,8 @@ from utils.tinkoff.browser_manager import BrowserManager
 from utils.tinkoff.browser_input_utils import paged_login, close_login_via_sms_page, get_user_name_from_otp_login, skip_control_questions
 from utils.tinkoff.browser_utils import get_text, detect_page_type, PageType, click_button
 
+# from dependencies import get_authenticated_user
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -44,6 +46,7 @@ async def get_login_type(request: Request, token: str = Query(default=None)):
             return
     else:
         pass
+
     
     # Открытие браузера если закрыт, если открыт обновление времени выключения
     if await check_for_page(browser):
@@ -79,6 +82,7 @@ async def login(request: Request, data: str = Body(...), token: str = Query(defa
             return
     else:
         pass
+
     
     # Если страница неактивна кидаем ошибку
     if not await browser.is_page_active():
@@ -105,6 +109,7 @@ async def next_page(request: Request, step: str | None = Query(default=None), to
             return
     else:
         pass
+
     
     # Если страница неактивна кидаем ошибку
     if not await browser.is_page_active():
@@ -219,7 +224,7 @@ async def reset_session():
     if await check_for_browser(browser):
         await browser.close_browser()
 
-    file_path = "chrome_data/storage_state.json"
+    file_path = config.PATH_TO_CHROME_PROFILE + "/storage_state.json"
     try:
         if os.path.exists(file_path):
             os.remove(file_path)
