@@ -64,7 +64,7 @@ async def load_expenses():
         try:
             db = Session()
 
-            '''if await check_for_page(browser):
+            if await check_for_page(browser):
                 browser.reset_interaction_time()
             elif await check_for_browser(browser):
                 await browser.create_context_and_page()
@@ -112,7 +112,7 @@ async def load_expenses():
             await load_expenses_from_site(browser, unix_range_start, unix_range_end, db, "Europe/Moscow")
             print(f"Успешно завершена автозагрузка расходов (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')})")
             if browser:
-                await browser.close_browser()'''
+                await browser.close_browser()
             send_expense_notification(db)
             sync_expenses_to_sheet(db, "year")
             return
@@ -148,7 +148,7 @@ def async_to_sync(async_func):
 def start_scheduler():
     scheduler = BackgroundScheduler(timezone=moscow_tz)
     # Используем обёртку для вызова асинхронной функции
-    scheduler.add_job(lambda: async_to_sync(load_expenses), CronTrigger(hour=5, minute=53, timezone=moscow_tz))
+    scheduler.add_job(lambda: async_to_sync(load_expenses), CronTrigger(hour=19, minute=13, timezone=moscow_tz))
     scheduler.start()
     try:
         while True:

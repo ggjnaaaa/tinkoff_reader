@@ -45,7 +45,7 @@ async def get_login_type(request: Request, token: str = Query(default=None)):
         if not check_miniapp_token(token):
             return
     else:
-        pass
+        return
 
     
     # Открытие браузера если закрыт, если открыт обновление времени выключения
@@ -81,7 +81,7 @@ async def login(request: Request, data: str = Body(...), token: str = Query(defa
         if not check_miniapp_token(token):
             return
     else:
-        pass
+        return
 
     
     # Если страница неактивна кидаем ошибку
@@ -108,7 +108,7 @@ async def next_page(request: Request, step: str | None = Query(default=None), to
         if not check_miniapp_token(token):
             return
     else:
-        pass
+        return
 
     
     # Если страница неактивна кидаем ошибку

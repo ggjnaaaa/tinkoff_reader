@@ -118,7 +118,7 @@ async def get_bot_expenses(
             {"request": request, "error_message": error_message, "expenses": []},
             status_code=200
         )
-
+    
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JSONResponse(content=expenses_data)
     

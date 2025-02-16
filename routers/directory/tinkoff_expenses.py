@@ -193,7 +193,7 @@ def get_categories_with_keywords(db):
     # Обрабатываем результат
     categories = {}
     for category_id, category_title, keyword in result:
-        if category_id not in categories:
+        if category_title not in categories:
             categories[category_title] = {
                 "id": category_id,
                 "keywords": []
