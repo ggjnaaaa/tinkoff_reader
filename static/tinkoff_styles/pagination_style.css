@@ -1,0 +1,24 @@
+#paginationRowCount {
+    left: 40px;
+    position: absolute;
+    display: flex;
+    text-wrap-mode: nowrap;
+    align-items: center;
+}
+
+#paginationRowCount label {
+    margin-right: 10px;
+}
+
+#paginationControls {
+    position: relative;
+    margin-top: 20px;
+}
+
+#paginationControls .previous-button {
+    margin: 20px;
+}
+
+#paginationControls .next-button {
+    margin: 20px;
+}

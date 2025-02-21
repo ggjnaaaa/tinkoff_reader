@@ -22,26 +22,15 @@ document.getElementById('go-to-expenses').addEventListener('click', async functi
     });
 });
 
+
+const toastManager = new ToastManager();
+
 // Всплывающая ошибка
 function showErrorToast(message) {
-    const toast = document.getElementById('error-toast');
-    toast.querySelector('span').textContent = message; // Устанавливаем текст ошибки
-    toast.classList.add('show');
-    
-    // Скрываем уведомление через 5 секунд
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 5000);
+    toastManager.showToast(message, "error");
 }
 
 // Всплывающее оповещение
 function showNotificationToast(message) {
-    const toast = document.getElementById('notification-toast');
-    toast.querySelector('span').textContent = message; // Устанавливаем текст ошибки
-    toast.classList.add('show');
-    
-    // Скрываем уведомление через 5 секунд
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 5000);
+    toastManager.showToast(message, "notification");
 }

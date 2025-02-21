@@ -1,0 +1,36 @@
+label {
+    font-size: 100%;
+    color: #333;
+    margin-right: 8px;
+}
+
+h2 {
+    margin: 40px 0px 20px 0px;
+}
+
+p {
+    margin: 5px 0px 5px 0px;
+}
+
+.button-container {
+    display: flex;
+    justify-content: end;
+    font-size: 12px;
+    width: 190px;
+}
+
+.input-wrapper {
+    margin-top: 20px;
+}
+
+.input-container {
+    display: flex;
+    flex-direction: column; 
+    gap: 10px;
+    max-width: 300px;
+    margin: 0 auto;
+}
+
+input {
+    padding: 5px;
+}

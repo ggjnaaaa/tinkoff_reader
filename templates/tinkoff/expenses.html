@@ -17,27 +17,53 @@
     <!--Выпадающие списки в таблице -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
+    {% if is_miniapp %}
+        <style>
+            .header-title {
+                display: none;
+            }
+
+            .content-container {
+                padding-top: 0px;
+            }
+
+            .toast {
+                margin-top: 20px;
+            }
+
+            .content-blocker {
+                top: 0px;
+            }
+
+            #toast-container {
+                top: 10px
+            }
+        </style>
+    {% endif %}
 {% endblock %}
 
 {% block content %}
-    <div class="menu-wrapper">
-        <!-- Кнопка-гамбургер -->
-        <button class="menu-toggle" onclick="toggleMenu()">☰</button>
+    {% if not is_miniapp %}
+        <div class="menu-wrapper">
+            <!-- Кнопка-гамбургер -->
+            <button class="menu-toggle" onclick="toggleMenu()">☰</button>
 
-        <!-- Боковое меню -->
-        <div id="sideMenu" class="side-menu">
-            <button class="close-btn" onclick="toggleMenu()">&times;</button>
-            <ul>
-                <li><button onclick="loginToTinkoff()">Войти в Тинькофф</button></li>
-                <li><button onclick="resetTinkoffSession()">Сбросить текущую сессию</button></li>
-            </ul>
+            <!-- Боковое меню -->
+            <div id="sideMenu" class="side-menu">
+                <button class="close-btn" onclick="toggleMenu()">&times;</button>
+                <ul>
+                    <li><button onclick="loginToTinkoff()">Войти в Тинькофф</button></li>
+                    <li><button onclick="resetTinkoffSession()">Сбросить текущую сессию</button></li>
+                </ul>
+            </div>
         </div>
-    </div>
+    {% endif %}
 
     <div id="overlay" class="overlay"></div>
 
-    <h1>Ваши расходы</h1>
-    <h2 id="totalExpenses">Общая сумма расходов: 0 ₽</h2>
+    <h2>Ваши расходы</h2>
+    <p id="totalExpenses">Общая сумма расходов: 0 ₽</p>
 
     <!-- Выпадающий список для выбора периода -->
     <div style="position: relative;">
@@ -51,59 +77,74 @@
         </div>
     </div>
 
-    <div style="margin-top: 15px;">
-        <label for="dateRange">Выберите период:</label>
-        <input id="dateRange" type="text" placeholder="Выберите период" />
-    </div>
-
-    <div style="margin-top: 12px;margin-bottom: 10px;">
-        <label for="cardFilter">Фильтр по картам:</label>
-        <select id="cardFilter" style="width: 200px;"></select>
-    </div>
-
-    <div class="download_selection">
-        <label class="radio-option">
-            <input type="radio" name="dataSource" value="db" checked onchange="setDataSource('db')">
-            <span class="custom-radio"></span>
-            Загружать из базы
-        </label>
-        <label class="radio-option">
-            <input type="radio" name="dataSource" value="tinkoff" onchange="setDataSource('tinkoff')">
-            <span class="custom-radio"></span>
-            Загружать с Тинькофф
-        </label>
-    </div>
-
-    <button onclick="saveKeywords()">Сохранить изменения</button>
-
-    <table id="expensesTable" class="expenses-table resizable">
-        <thead>
-            <tr>
-                <th>Дата и время</th>
-                <th>Карта</th>
-                <th>Сумма</th>
-                <th>Описание</th>
-                <th>Статья</th>
-            </tr>
-        </thead>
-        <tbody></tbody>
-    </table>
-
-    <!-- Пагинация -->
-    <div style="margin-top: 20px; margin-bottom: 15px;">
-        <div id="paginationRowCount">
-            <label for="itemsPerPageSelect">Строк на странице:</label>
-            <select id="itemsPerPageSelect" class="select2">
-                <option value="10">10</option>
-                <option value="20">20</option>
-                <option value="50">50</option>
-            </select>
+    {% if not is_miniapp %}
+        <div style="margin-top: 15px;">
+            <label for="dateRange">Выберите период:</label>
+            <input id="dateRange" type="text" placeholder="Выберите период" />
         </div>
-        <div id="paginationControls">
-            <!-- Контролы для смены страниц добавляются динамически из renderPaginationControls -->
+
+        <div style="margin-top: 12px;margin-bottom: 10px;">
+            <label for="cardFilter">Фильтр по картам:</label>
+            <select id="cardFilter" style="width: 200px;"></select>
+        </div>
+
+        <div class="download_selection">
+            <label class="radio-option">
+                <input type="radio" name="dataSource" value="db" checked onchange="setDataSource('db')">
+                <span class="custom-radio"></span>
+                Загружать из базы
+            </label>
+            <label class="radio-option">
+                <input type="radio" name="dataSource" value="tinkoff" onchange="setDataSource('tinkoff')">
+                <span class="custom-radio"></span>
+                Загружать с Тинькофф
+            </label>
+        </div>
+
+        <button onclick="saveKeywords()">Сохранить изменения</button>
+    {% endif %}
+
+    <div class="table-wrapper">
+        <div class="table-container">
+            <table id="expensesTable" class="expenses-table resizable">
+                <thead>
+                    <tr>
+                        {% if not is_miniapp %}
+                        <th>Дата и время</th>
+                        <th>Карта</th>
+                        {% endif %}
+                        <th>Сумма</th>
+                        <th>Описание</th>
+                        <th>Статья</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
         </div>
     </div>
 
+    {% if not is_miniapp %}
+        <!-- Пагинация -->
+        <div style="margin-top: 20px; margin-bottom: 15px; padding-bottom: 50px;">
+            <div id="paginationRowCount">
+                <label for="itemsPerPageSelect">Строк на странице:</label>
+                <select id="itemsPerPageSelect" class="select2">
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+            <div id="paginationControls">
+                <!-- Контролы для смены страниц добавляются динамически из renderPaginationControls -->
+            </div>
+        </div>
+
+        <div id="footer-save" style="display: none; position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ccc; text-align: center;">
+            <button style="margin-bottom: 15px;" onclick="saveKeywords()">Сохранить изменения</button>
+        </div>
+    {% endif %}
+
+    <div id="toast-container"></div>
     <div id="error-message" style="display: none;">
         {{ error_message }}
     </div>
@@ -113,6 +154,7 @@
     <div id="redirect_url" style="display: none;">
         {{ redirect_url }}
     </div>
+    <div id="app" data-miniapp="{{ is_miniapp | lower }}"></div>
 {% endblock %}
 
 {% block scripts %}

@@ -1,0 +1,11 @@
+.expenses-table {
+    width: 98%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-top: 2em;
+}
+
+#toast-container {
+    gap: 3px;
+    width: 150px;
+}

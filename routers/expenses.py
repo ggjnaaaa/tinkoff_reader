@@ -2,6 +2,7 @@
 
 # Библиотеки Python
 import json
+import time
 
 # Сторонние библиотеки
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
@@ -10,7 +11,7 @@ from fastapi.templating import Jinja2Templates
 from typing import Optional
 
 # Собственные модули
-from routers.auth_tinkoff import get_browser, check_for_browser
+from routers.auth_tinkoff import get_browser, check_for_browser, check_miniapp_token
 from routers.directory.tinkoff_expenses import (
     get_expenses_from_db,
     get_categories_from_db,
@@ -19,6 +20,7 @@ from routers.directory.tinkoff_expenses import (
     get_last_unreceived_error,
     set_temporary_code
 )
+from routers.directory.bot import get_card_number_by_chat_id
 
 from utils.tinkoff.expenses_utils import load_expenses_from_site
 from utils.tinkoff.time_utils import get_period_range
@@ -27,7 +29,9 @@ from utils.tinkoff.browser_utils import PageType
 import config as config
 from database import Session
 from models import SaveKeywordsRequest, CategoryExpenses
-from auth import create_temp_token
+from auth import create_temp_token, verify_bot_token
+
+from dependencies import get_authenticated_user
 
 
 router = APIRouter()
@@ -52,17 +56,29 @@ async def show_expenses_page(request: Request):
 @router.get("/tinkoff/expenses/")
 async def get_expenses(
     request: Request,
+    token: Optional[str] = Query(None),  # Если передан, значит, запрос от бота
     period: Optional[str] = None,
     rangeStart: Optional[str] = None,
     rangeEnd: Optional[str] = None,
-    time_zone: str = Query(...),
+    time_zone: str = Query("Europe/Moscow"),
     source: str = Query('db'),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_authenticated_user)
 ):
     """
-    Эндпоинт для получения расходов. Загружает данные из базы данных или с сайта, в зависимости от параметра `source`.
+    Универсальный эндпоинт для получения расходов. Работает и для бота, и для основного интерфейса.
     """
-    # Определяем временные диапазоны
+    card_num = None
+    if token:
+        # Запрос от бота
+        card_num = await process_bot_request(token, db)
+    else:
+        # Запрос от обычного пользователя
+        if isinstance(user, RedirectResponse):
+            pass
+            # return user  # Если пользователь не аутентифицирован
+
+    # Преобразуем диапазон в Unix-время
     unix_range_start, unix_range_end = get_period_range(
         timezone=time_zone,
         range_start=rangeStart,
@@ -71,53 +87,61 @@ async def get_expenses(
     )
 
     try:
-        # Логика загрузки расходов
         if source == 'tinkoff':
-            browser = get_browser()
-
-            if browser and await check_for_browser(browser):
-                # Если браузер активен, загружаем данные
-                try:
-                    expenses_data = await load_expenses_from_site(browser, unix_range_start, unix_range_end, db, time_zone)
-                except Exception as e:
-                    return response_with_token(request, 
-                                               period, 
-                                               rangeStart, 
-                                               rangeEnd, 
-                                               time_zone, 
-                                               "Ошибка загрузки расходов. Попробуйте снова позже.")
-            else:
-                return response_with_token(request, 
-                                               period, 
-                                               rangeStart, 
-                                               rangeEnd, 
-                                               time_zone, 
-                                               "Необходима авторизация")
+            expenses_data = await get_expenses_from_tinkoff(unix_range_start, unix_range_end, db, time_zone)
         else:
-            # Загружаем данные из базы данных
-            expenses_data = get_expenses_from_db(db, unix_range_start, unix_range_end, time_zone)
+            expenses_data = get_expenses_from_db(db, unix_range_start, unix_range_end, time_zone, card_num)
     except Exception as e:
         print(f"Ошибка загрузки расходов: {e}")
-        raise HTTPException(status_code=500, detail="Ошибка выгрузки расходов. Повторите попытку позже.")
+        return response_with_token(request, 
+                                    period, 
+                                    rangeStart, 
+                                    rangeEnd, 
+                                    time_zone, 
+                                    "Необходима авторизация")
 
-    # Возврат JSON или страницы
+    return generate_expense_response(request, expenses_data, token is not None)
+
+
+async def process_bot_request(token: str, db: Session) -> str:
+    """Проверяет токен бота и возвращает номер карты."""
+    try:
+        user_data = verify_bot_token(token)
+        chat_id = int(user_data.get("chat_id"))
+        auth_date = int(user_data.get("auth_date", 0))
+
+        if (int(time.time()) - auth_date) > 25 * 3600:
+            raise HTTPException(status_code=401, detail="Токен истёк.")
+
+        card_num = get_card_number_by_chat_id(db, chat_id)
+        if not card_num:
+            raise HTTPException(status_code=403, detail="Пользователь не найден.")
+        return card_num
+    except ValueError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+async def get_expenses_from_tinkoff(start: int, end: int, db: Session, time_zone: str):
+    """Загружает расходы с сайта Тинькофф."""
+    browser = get_browser()
+    if browser and await check_for_browser(browser):
+        return await load_expenses_from_site(browser, start, end, db, time_zone)
+    else:
+        raise HTTPException(status_code=403, detail="Необходима авторизация.")
+
+
+def generate_expense_response(request: Request, expenses_data: dict, is_bot: bool):
+    """Формирует JSON или HTML-ответ."""
     if not expenses_data["expenses"]:
         error_message = "Данные за выбранный период отсутствуют."
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JSONResponse(
-                status_code=200,
-                content={"error_message": error_message}
-            )
-        return templates.TemplateResponse(
-            PageType.EXPENSES.template_path(),
-            {"request": request, "error_message": error_message, "expenses": []},
-            status_code=200
-        )
-    
+            return JSONResponse(status_code=200, content={"error_message": error_message})
+        return templates.TemplateResponse(PageType.EXPENSES.template_path(), {"request": request, "error_message": error_message, "expenses": [], "is_miniapp": is_bot})
+
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JSONResponse(content=expenses_data)
-    
-    return templates.TemplateResponse(PageType.EXPENSES.template_path(), {"request": request, "expenses": json.dumps(expenses_data)})
+
+    return templates.TemplateResponse(PageType.EXPENSES.template_path(), {"request": request, "expenses": json.dumps(expenses_data), "is_miniapp": is_bot})
 
 
 def response_with_token(request, period, rangeStart, rangeEnd, time_zone, message):
@@ -165,10 +189,24 @@ def get_categories(db: Session = Depends(get_db)):
 
 
 @router.post("/tinkoff/expenses/keywords/")
-async def save_keywords(request: SaveKeywordsRequest, db: Session = Depends(get_db)):
+async def save_keywords(
+    request: SaveKeywordsRequest, 
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_authenticated_user), 
+    token: Optional[str] = Query(None)
+):
     """
     Эндпоинт для сохранения ключевых слов категорий.
     """
+    if token:
+        # Запрос от бота
+        if not check_miniapp_token(token):
+            return
+    else:
+        # Запрос от обычного пользователя
+        if isinstance(user, RedirectResponse):
+            pass # return user  # Если пользователь не аутентифицирован
+    
     for keyword in request.keywords:
         if keyword.category_name == "":
             # Удаляем ключевое слово, если оно привязано к какой-либо категории
@@ -186,11 +224,22 @@ async def save_keywords(request: SaveKeywordsRequest, db: Session = Depends(get_
 @router.post("/tinkoff/save_otp/")
 async def save_otp(
     otp: str = Query(...), 
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: dict = Depends(get_authenticated_user),
+    token: Optional[str] = Query(None)
 ):
     """
     Эндпоинт для сохранения временного пароля.
     """
+    if token:
+        # Запрос от бота
+        if not check_miniapp_token(token):
+            return
+    else:
+        # Запрос от обычного пользователя
+        if isinstance(user, RedirectResponse):
+            pass # return user  # Если пользователь не аутентифицирован
+    
     if otp and len(otp) == 4:
         set_temporary_code(db, otp)
 

@@ -1,0 +1,6 @@
+.expenses-table {
+    width: 98%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+    margin-top: 2em;
+}

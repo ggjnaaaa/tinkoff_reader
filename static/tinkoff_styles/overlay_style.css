@@ -1,0 +1,154 @@
+/* Блокировщик контента */
+.content-blocker {
+    position: fixed;
+    top: 77px;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+}
+
+/* Значок загрузки */
+.loader {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+/* Контент окна ошибки */
+.modal-content {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 300px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Кнопки внутри модального окна */
+.modal-buttons {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 15px;
+}
+
+.button-primary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #4CAF50;
+    color: white;
+    cursor: pointer;
+}
+
+.button-secondary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #f44336;
+    color: white;
+    cursor: pointer;
+}
+
+.button-primary:hover, .button-secondary:hover {
+    opacity: 0.9;
+}
+
+/* Кнопка-гамбургер */
+.menu-toggle {
+    position: absolute;
+    top: 83px;
+    left: 20px;
+    border: none;
+    font-size: 12px;
+    padding: 10px;
+    border-radius: 4px;
+}
+
+/* Боковое меню */
+.side-menu {
+    position: fixed;
+    top: 77px;
+    left: -250px;
+    width: 250px;
+    height: 100%;
+    background-color: #000000e5;
+    color: white;
+    padding: 20px;
+    transition: 0.3s;
+    z-index: 999;
+    box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+}
+
+.side-menu.active {
+    left: 0;
+}
+
+.side-menu .close-btn {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 15px;
+}
+
+.side-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 50px 0 0;
+}
+
+.side-menu ul li {
+    margin: 15px 0;
+}
+
+.side-menu ul li button {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 4px;
+}
+
+.side-menu ul li button:hover {
+    background-color: #1abc9c;
+}
+
+/* Скрыть кнопку-бургер при активном меню */
+.menu-toggle.hidden {
+    display: none;
+}
+
+/* Затемнение фона при открытом меню */
+.overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 998;
+}
+
+.overlay.active {
+    display: block;
+}

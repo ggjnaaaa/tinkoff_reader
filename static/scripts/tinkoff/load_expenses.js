@@ -1,5 +1,4 @@
 let expenseManager = null;
-let is_for_one_card = null;
 
 // Общая функция для обработки возвращенной таблицы расходов с бэка
 async function loadExpenses(data) {
@@ -24,11 +23,12 @@ async function loadExpenses(data) {
     // Получение категорий
     const categories = await fetchCategories();
 
-    is_for_one_card = data.cards ? false : true;
-
     // Инициализация ExpenseManager
-    expenseManager = new ExpenseManager(data.expenses, categories, is_for_one_card);
-    expenseManager.render();
+    if (data.expenses) {
+        expenseManager = new ExpenseManager(data.expenses, categories, isMiniApp);
+        expenseManager.render();
+    }
+    
 }
 
 // Функция для получения значения параметра из текущего URL
@@ -37,10 +37,10 @@ function getQueryParam(param) {
     return urlParams.get(param);
 }
 
-// Выбор эндпоинта на основе наличия токена
-function getExpensesEndpoint() {
+// Достает токен из запроса
+function getToken() {
     const token = getQueryParam('token');
-    return token ? `/bot/expenses/?token=${token}` : '/tinkoff/expenses/';
+    return token;
 }
 
 // Загрузка расходов с сервера с учетом выбранного дефолтного периода
@@ -52,7 +52,8 @@ async function loadExpensesByDefaultPeriod(period = 'month') {
     let isRedirect = false;
 
     try {
-        const endpoint = getExpensesEndpoint();
+        const token = getToken();
+        const endpoint = token ? `/tinkoff/expenses/?token=${token}` : '/tinkoff/expenses/';
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('period', period);
         url.searchParams.append('time_zone', userTimeZone);
@@ -114,7 +115,8 @@ async function loadExpensesByPeriod(startDate, endDate) {
     let isRedirect = false;
 
     try {
-        const endpoint = getExpensesEndpoint();
+        const token = getToken();
+        const endpoint = token ? `/tinkoff/expenses/?token=${token}` : '/tinkoff/expenses/';
         const url = new URL(endpoint, window.location.origin);
         url.searchParams.append('rangeStart', startDate);
         url.searchParams.append('rangeEnd', endDate);

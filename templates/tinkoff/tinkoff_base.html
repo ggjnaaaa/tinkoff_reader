@@ -6,10 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{% endblock %}</title>
     <link rel="stylesheet" href="/static/style.css">
-    <link rel="stylesheet" href="/static/tinkoff_style.css">
-    <link rel="stylesheet" href="/static/tinkoff-style-mobile.css" media="(max-width: 600px)">
-    <link rel="stylesheet" href="/static/tinkoff-style-tablet.css" media="(min-width: 601px) and (max-width: 1024px)">
-    <link rel="stylesheet" href="/static/tinkoff-style-desktop.css" media="(min-width: 1025px)">
+
+    <link rel="stylesheet" href="/static/tinkoff_styles/tinkoff_style.css">
+
+    <link rel="stylesheet" href="/static/tinkoff_styles/button_style.css">
+    <link rel="stylesheet" href="/static/tinkoff_styles/notifications_style.css">
+    <link rel="stylesheet" href="/static/tinkoff_styles/overlay_style.css">
+    <link rel="stylesheet" href="/static/tinkoff_styles/pagination_style.css">
+    <link rel="stylesheet" href="/static/tinkoff_styles/table_style.css">
+
+    <link rel="stylesheet" href="/static/tinkoff_styles/tinkoff-style-mobile.css" media="(max-width: 600px)">
+    <link rel="stylesheet" href="/static/tinkoff_styles/tinkoff-style-tablet.css" media="(min-width: 601px) and (max-width: 1024px)">
+    <link rel="stylesheet" href="/static/tinkoff_styles/tinkoff-style-desktop.css" media="(min-width: 1025px)">
     <style>
         body {
             background-color: white !important;
@@ -48,12 +56,6 @@
                     </div>
                 </div>
             </div>
-            <div id="error-toast" class="error-toast">
-                <span>?</span>
-            </div>
-            <div id="notification-toast" class="notification-toast">
-                <span>?</span>
-            </div>
             {% block content %}
 
             {% endblock %}
@@ -63,6 +65,7 @@
 
     <script src="/static/scripts/script.js"></script>
     <script src="/static/scripts/tinkoff/loader.js" defer></script>
+    <script src="/static/scripts/tinkoff/toast_manager.js" defer></script>
     <script src="/static/scripts/tinkoff/errors.js" defer></script>
     {% block scripts %}
 

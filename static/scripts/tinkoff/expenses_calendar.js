@@ -1,12 +1,14 @@
 document.addEventListener("click", function (event) {
-    const periodOptions = document.getElementById("periodOptions");
-    const periodButton = document.getElementById("periodButton");
-    if (periodOptions && !periodOptions.contains(event.target) && event.target !== periodButton) {
-        periodOptions.style.display = 'none';
-    }
+    if (!isMiniApp) {
+        const periodOptions = document.getElementById("periodOptions");
+        const periodButton = document.getElementById("periodButton");
+        if (periodOptions && !periodOptions.contains(event.target) && event.target !== periodButton) {
+            periodOptions.style.display = 'none';
+        }
+    } 
 });
 
-const dateRangePicker = flatpickr("#dateRange", {
+const dateRangePicker = isMiniApp ? null : flatpickr("#dateRange", {
     mode: "range",
     dateFormat: "d.m.Y",
     locale: "ru",
@@ -79,5 +81,6 @@ function getPeriodLabel(period) {
 
 // Функция для очистки даты
 function clearDateRange() {
-    dateRangePicker.clear();
+    if (dateRangePicker)
+        dateRangePicker.clear();
 }

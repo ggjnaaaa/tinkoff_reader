@@ -128,7 +128,6 @@ async def load_expenses():
     else:
         print(f"Невозможно записать сообщение об ошибке в БД. Ошибка: {last_error}")
 
-    print("HLYGUK")
     sync_expenses_to_sheet(db, "year")
 
     get_error_notification_chat_ids(db, config.ERROR_NOTIFICATION_USERS)
@@ -201,8 +200,6 @@ def send_expense_notification(db):
 
         # Преобразование результата в список
         chat_ids = [str(chat_id[0]) for chat_id in chat_ids]
-        print(chat_ids)
-        print(unique_cards)
 
         response = requests.post(
             config.AUTO_SAVE_MAILING_BOT_API_URL,

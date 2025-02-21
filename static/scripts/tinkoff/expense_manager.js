@@ -1,13 +1,15 @@
 class ExpenseManager {
-    constructor(expenses, categories, is_for_one_card) {
+    constructor(expenses, categories, isMiniApp) {
+        if (!expenses) throw new Error("Расходы не должны быть пустыми!");
         this.originalExpenses = expenses;
         this.filteredExpenses = [...expenses];
         this.categories = categories;
-        this.is_for_one_card = is_for_one_card;
+        this.isMiniApp = isMiniApp;
 
         // Параметры пагинации
         this.currentPage = 1;
-        this.itemsPerPage = parseInt(localStorage.getItem("itemsPerPage")) || 10; // Загружаем itemsPerPage из локального хранилища или ставим 10
+        if (!isMiniApp)
+            this.itemsPerPage = parseInt(localStorage.getItem("itemsPerPage")) || 10; // Загружаем itemsPerPage из локального хранилища или ставим 10
 
         this.render();
     }
@@ -89,6 +91,8 @@ class ExpenseManager {
     }
 
     renderPaginationControls() {
+        if (this.isMiniApp) return;
+
         const paginationContainer = $('#paginationControls');
         paginationContainer.empty();
 
@@ -120,8 +124,8 @@ class ExpenseManager {
         const tableBody = $('#expensesTable tbody');
         tableBody.empty();
     
-        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
-        const endIndex = startIndex + this.itemsPerPage;
+        const startIndex = this.isMiniApp ? 0 : (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = this.isMiniApp ? this.filteredExpenses.length : startIndex + this.itemsPerPage;
         const expensesToRender = this.filteredExpenses.slice(startIndex, endIndex);
 
         expensesToRender.forEach(expense => {
@@ -131,7 +135,7 @@ class ExpenseManager {
             }).join('');
 
             let row;
-            if (this.is_for_one_card) {
+            if (this.isMiniApp) {
                 row = `<tr>
                             <td>${expense.amount} ₽</td>
                             <td>${expense.description}</td>
@@ -185,7 +189,7 @@ class ExpenseManager {
             const description = $(event.target).data('description');
             this.updateCategory(description, selectedCategory);
 
-            if (this.is_for_one_card) {
+            if (this.isMiniApp) {
                 $('#footer-save').show();
             }
         });

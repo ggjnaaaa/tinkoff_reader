@@ -7,7 +7,7 @@
 {% block input_type %}number{% endblock %}
 
 {% block content %}
-    <h2 id="form-title" data-name="{{ name }}" style="margin-top: 20px;">Здравствуйте, {{ name }}!</h1>
+    <h2 id="form-title" data-name="{{ name }}">Здравствуйте, {{ name }}!</h2>
     {{ super() }}
 
     <button class="action-button" type="button" id="reset-button" style="margin-top: 10px;">Я не {{ name }}</button>

@@ -8,6 +8,8 @@ $(window).on('load', function() {
     });
 });
 
+window.isMiniApp = document.getElementById("app").dataset.miniapp === "true";
+
 // Вызов отображения расходов за месяц
 document.addEventListener("DOMContentLoaded", async function () {
     showGlobalLoader();
@@ -31,7 +33,8 @@ document.addEventListener("DOMContentLoaded", async function () {
         const formatRangeStart = formatDate(new Date(rangeStart));
         const formatRangeEnd = formatDate(new Date(rangeEnd));
         
-        dateRangePicker.setDate([formatRangeStart, formatRangeEnd], true);
+        if (document.getElementById("dateRange"))
+            dateRangePicker.setDate([formatRangeStart, formatRangeEnd], true);
         setPeriodLabel(`${formatRangeStart} - ${formatRangeEnd}`);
     } else if (period) {
         setPeriodLabel(getPeriodLabel(period));
@@ -159,7 +162,9 @@ async function saveKeywords() {
     });
 
     try {
-        const response = await fetch('/tinkoff/expenses/keywords/', {
+        const token = getToken();
+        const endpoint = token ? `/tinkoff/expenses/keywords/?token=${token}` : '/tinkoff/expenses/keywords/';
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ keywords })

@@ -1,5 +1,27 @@
 {% extends "tinkoff/tinkoff_base.html" %}
 
+{% block head %}
+    {% if is_miniapp %}
+        <style>
+            .header-title {
+                display: none;
+            }
+
+            .content-container {
+                padding-top: 0px;
+            }
+
+            .toast {
+                margin-top: 20px;
+            }
+
+            .content-blocker {
+                top: 0px;
+            }
+        </style>
+    {% endif %}
+{% endblock %}
+
 {% block content %}
     <!-- Ввод информации -->
     <div class="input-wrapper">

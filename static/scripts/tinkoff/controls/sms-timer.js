@@ -22,12 +22,12 @@ class SmsTimer extends HTMLElement {
             }
             #timer {
                 font-weight: bold;
-                color: #004080;
+                color: #39D488;
             }
             button {
                 display: none;
-                background-color: #004080;
-                color: #fff;
+                background-color: #39D488;
+                color: #000;
                 padding: 8px 16px;
                 font-size: 0.9rem;
                 border: none;
@@ -36,7 +36,7 @@ class SmsTimer extends HTMLElement {
                 margin-top: 8px;
             }
             button:hover {
-                background-color: #003366;
+                background-color: #15947a;
             }
         `;
         shadowRoot.appendChild(style);
