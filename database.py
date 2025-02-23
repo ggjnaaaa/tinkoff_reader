@@ -3,7 +3,7 @@ import sqlalchemy
 import asyncio
 from sqlalchemy.orm import sessionmaker
 
-DATABASE_URL = "postgresql://ggjnaaaa:2016@127.0.0.1:5432/tinkoff_db"
+from config import DATABASE_URL
 
 database = databases.Database(DATABASE_URL)
 metadata = sqlalchemy.MetaData()

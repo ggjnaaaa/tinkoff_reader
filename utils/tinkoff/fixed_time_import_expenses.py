@@ -45,7 +45,7 @@ from utils.tinkoff.expenses_utils import (
 )
 
 
-from routers.bot_air_balon import sync_expenses_to_sheet
+from utils.tinkoff.expenses_google_sheets import sync_expenses_to_sheet_no_id
 
 
 # Часовой пояс Москвы
@@ -114,7 +114,7 @@ async def load_expenses():
             if browser:
                 await browser.close_browser()
             send_expense_notification(db)
-            sync_expenses_to_sheet(db, "year")
+            sync_expenses_to_sheet_no_id(db, "day")
             return
         except Exception as e:
             last_error = e
@@ -127,8 +127,6 @@ async def load_expenses():
         set_last_error(db, str(last_error))
     else:
         print(f"Невозможно записать сообщение об ошибке в БД. Ошибка: {last_error}")
-
-    sync_expenses_to_sheet(db, "year")
 
     get_error_notification_chat_ids(db, config.ERROR_NOTIFICATION_USERS)
 
@@ -147,7 +145,7 @@ def async_to_sync(async_func):
 def start_scheduler():
     scheduler = BackgroundScheduler(timezone=moscow_tz)
     # Используем обёртку для вызова асинхронной функции
-    scheduler.add_job(lambda: async_to_sync(load_expenses), CronTrigger(hour=19, minute=13, timezone=moscow_tz))
+    scheduler.add_job(lambda: async_to_sync(load_expenses), CronTrigger(hour=21, minute=0, timezone=moscow_tz))
     scheduler.start()
     try:
         while True:
@@ -184,7 +182,7 @@ def send_expense_notification(db):
     Вызывает эндпоинт на сервере бота для рассылки уведомлений пользователям у которых были расходы за сегодня.
     """
     try:
-        unique_cards = ["7511"] #[card.lstrip('*') for card in get_today_uniq_cards(db)]  # Убираем звезды из начала карт
+        unique_cards = [card.lstrip('*') for card in get_today_uniq_cards(db)]  # Убираем звезды из начала карт
 
         if not unique_cards:
             return

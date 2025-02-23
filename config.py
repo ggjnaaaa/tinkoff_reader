@@ -3,23 +3,26 @@ from utils.tinkoff.browser_manager import BrowserManager
 
 # Тайм-аут для неактивности, после которого браузер будет закрыт (в секундах)
 BROWSER_TIMEOUT: int = 180  # 3 минута
-EXPENSES_URL: str = f"https://www.tbank.ru/auth/login/?redirectTo=%2Fevents%2Ffeed%2F&redirectType="
-PATH_TO_CHROME_PROFILE="/home/ggjnaaaa/myProgs/tinkoff_reader/chrome_data/"
-DOWNLOAD_DIRECTORY="/home/ggjnaaaa/myProgs/tinkoff_reader/downloads/"
 
-BOT_API_URL = "http://127.0.0.1:8001/"
+EXPENSES_URL: str = f"https://www.tbank.ru/auth/login/?redirectTo=%2Fevents%2Ffeed%2F&redirectType="
+PATH_TO_CHROME_PROFILE="/home/ggjnaaaa/myProgs/tinkoff_reader/chrome_data/"   #             <--- ЗАМЕНИТЬ
+DOWNLOAD_DIRECTORY="/home/ggjnaaaa/myProgs/tinkoff_reader/downloads/"   #                   <--- ЗАМЕНИТЬ
+GOOGLE_SHEETS_URL='https://docs.google.com/spreadsheets/...'  #                             <--- ЗАМЕНИТЬ
+DATABASE_URL = "postgresql://...:...@.../..."  #                                            <--- ЗАМЕНИТЬ
+
+BOT_API_URL = "http://127.0.0.1:8001/"  #                                                   <--- ЗАМЕНИТЬ
 AUTO_SAVE_MAILING_BOT_API_URL = f"{BOT_API_URL}tinkoff/auto-save_mailing/"
 AUTO_SAVE_ERROR_MAILING_BOT_API_URL = f"{BOT_API_URL}tinkoff/auto-save_error_mailing/"
 
-BOT_TOKEN = "7884988975:AAGn2L1NCqV50ZY4VMe4hOqMzZTd2gamzrI"
+BOT_TOKEN = "..."  #                                                                        <--- ЗАМЕНИТЬ
 BOT_SECRET_KEY = hashlib.sha256(BOT_TOKEN.encode()).digest()
 
 ERROR_NOTIFICATION_USERS = [                                            # Список пользователей которым надо рассылать сообщение об ошибке автовыгрузки
-    '7511'
+    ...  #                                                                                  <--- ЗАМЕНИТЬ
 ]
 
 TRANSFER_NOTIFICATION_USERS = [                                         # Список пользователей которым надо рассылать дополнительно переводы
-    '7511'
+    ...  #                                                                                  <--- ЗАМЕНИТЬ
 ]
 
 # Работа с драйвером
@@ -41,4 +44,3 @@ phone_input_selector = 'input[name="phone"]'                            # Инп
 sms_code_input_selector = 'input[automation-id="otp-input"]'            # Инпут смс-кода
 pin_code_input_selector = 'input[automation-id="pin-code-input-0"]'     # Инпут временного кода
 password_input_selector = 'input[automation-id="password-input"]'       # Инпут пароля
-
