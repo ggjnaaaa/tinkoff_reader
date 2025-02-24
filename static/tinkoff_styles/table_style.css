@@ -50,3 +50,9 @@
 .select2-container {
     width: 95% !important;
 }
+
+#date {
+    padding:10px;
+    background-color: #39D488;
+    border-radius: 5px;
+}

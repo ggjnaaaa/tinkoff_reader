@@ -65,19 +65,24 @@
     <h2>Ваши расходы</h2>
     <p id="totalExpenses">Общая сумма расходов: 0 ₽</p>
 
-    <!-- Выпадающий список для выбора периода -->
-    <div style="position: relative;">
-        <button id="periodButton" onclick="togglePeriodOptions()">Этот месяц</button>
-        <div id="periodOptions" class="period-options">
-            <button onclick="loadExpensesByDefaultPeriod('day'); setPeriodLabel('Сегодня')">Сегодня</button>
-            <button onclick="loadExpensesByDefaultPeriod('week'); setPeriodLabel('Текущая неделя')">Текущая неделя</button>
-            <button onclick="loadExpensesByDefaultPeriod('month'); setPeriodLabel('Этот месяц')">Этот месяц</button>
-            <button onclick="loadExpensesByDefaultPeriod('3month'); setPeriodLabel('3 месяца')">3 месяца</button>
-            <button onclick="loadExpensesByDefaultPeriod('year'); setPeriodLabel('Этот год')">Этот год</button>
-        </div>
-    </div>
+    {% if is_miniapp %}
+        <p id="date"></p>
+    {% endif %}
+
 
     {% if not is_miniapp %}
+        <!-- Выпадающий список для выбора периода -->
+        <div style="position: relative;">
+            <button id="periodButton" onclick="togglePeriodOptions()">Этот месяц</button>
+            <div id="periodOptions" class="period-options">
+                <button onclick="loadExpensesByDefaultPeriod('day'); setPeriodLabel('Сегодня')">Сегодня</button>
+                <button onclick="loadExpensesByDefaultPeriod('week'); setPeriodLabel('Текущая неделя')">Текущая неделя</button>
+                <button onclick="loadExpensesByDefaultPeriod('month'); setPeriodLabel('Этот месяц')">Этот месяц</button>
+                <button onclick="loadExpensesByDefaultPeriod('3month'); setPeriodLabel('3 месяца')">3 месяца</button>
+                <button onclick="loadExpensesByDefaultPeriod('year'); setPeriodLabel('Этот год')">Этот год</button>
+            </div>
+        </div>
+
         <div style="margin-top: 15px;">
             <label for="dateRange">Выберите период:</label>
             <input id="dateRange" type="text" placeholder="Выберите период" />
@@ -138,7 +143,9 @@
                 <!-- Контролы для смены страниц добавляются динамически из renderPaginationControls -->
             </div>
         </div>
+    {% endif %}
 
+    {% if is_miniapp %}
         <div id="footer-save" style="display: none; position: fixed; bottom: 0; width: 100%; background: white; border-top: 1px solid #ccc; text-align: center;">
             <button style="margin-bottom: 15px;" onclick="saveKeywords()">Сохранить изменения</button>
         </div>

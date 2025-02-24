@@ -30,14 +30,17 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     if (rangeStart && rangeEnd) {
         // Если есть диапазон, вызываем loadExpensesByPeriod
-        const formatRangeStart = formatDate(new Date(rangeStart));
-        const formatRangeEnd = formatDate(new Date(rangeEnd));
+        const dateRangeStart = new Date(rangeStart);
+        const dateRangeEnd = new Date(rangeEnd);
+
+        const formatRangeStart = formatFullDate(dateRangeStart);
+        const formatRangeEnd = formatFullDate(dateRangeEnd);
         
         if (document.getElementById("dateRange"))
             dateRangePicker.setDate([formatRangeStart, formatRangeEnd], true);
-        setPeriodLabel(`${formatRangeStart} - ${formatRangeEnd}`);
+        setPeriodLabel([dateRangeStart, dateRangeEnd]);
     } else if (period) {
-        setPeriodLabel(getPeriodLabel(period));
+        setPeriodLabelByDefault(getPeriodLabel(period));
     } else {
         loadExpensesByDefaultPeriod('month');
     }
@@ -149,7 +152,7 @@ async function saveKeywords() {
     document.querySelectorAll('.category-select').forEach(select => {
         const categoryName = select.options[select.selectedIndex].textContent;
         let description = null;
-        if (is_for_one_card) {
+        if (isMiniApp) {
             description = select.closest('tr').querySelector('td:nth-child(2)').textContent;
         } else {
             description = select.closest('tr').querySelector('td:nth-child(4)').textContent;

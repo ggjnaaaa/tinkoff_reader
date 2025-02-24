@@ -27,7 +27,7 @@ const dateRangePicker = isMiniApp ? null : flatpickr("#dateRange", {
                                   String(endDate.getDate()).padStart(2, '0');
 
             loadExpensesByPeriod(startDateString, endDateString);
-            setPeriodLabel(`${formatDate(selectedDates[0])} - ${formatDate(selectedDates[1])}`);
+            setPeriodLabel(selectedDates);
         }
     }
 });
@@ -42,17 +42,34 @@ function togglePeriodOptions() {
     });
 }
 
-function setPeriodLabel(label) {
-    document.getElementById("periodButton").innerText = label;
+function setPeriodLabel(dates) {
+    if (isMiniApp)
+        document.getElementById("date").innerText = formatMiniDate(dates[0]);
+    else
+        document.getElementById("periodButton").innerText = `${formatFullDate(dates[0])} - ${formatFullDate(dates[1])}`;
+}
+
+function setPeriodLabelByDefault(period) {
+    if (isMiniApp)
+        document.getElementById("date").innerText = period;
+    else
+        document.getElementById("periodButton").innerText = period;
 }
 
 // Функция для форматирования даты в нужный вид
-function formatDate(date) {
+function formatFullDate(date) {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     
     return `${day}.${month}.${year}`;
+}
+
+function formatMiniDate(date) {    
+    return new Intl.DateTimeFormat('ru-RU', {
+                                day: '2-digit', // Двузначный день
+                                month: 'long',  // Полное название месяца
+                            }).format(date);
 }
 
 function getTodayDate() {
