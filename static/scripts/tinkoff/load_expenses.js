@@ -170,3 +170,64 @@ async function loadExpensesByPeriod(startDate, endDate) {
         }
     }
 }
+
+// Находим чекбокс по id
+const checkbox = document.getElementById('getAllCards');
+
+// Добавляем обработчик события на изменение состояния чекбокса
+checkbox.addEventListener('change', async () => {
+    showGlobalLoader();
+    const showAllExpenses = checkbox.checked;
+    const userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const urlParams = new URLSearchParams(window.location.search);
+    const rangeStart = urlParams.get("rangeStart");
+    const rangeEnd = urlParams.get("rangeEnd");
+
+    try {
+        const token = getToken();
+        const endpoint = `/tinkoff/expenses/?token=${token}`;
+        const url = new URL(endpoint, window.location.origin);
+        url.searchParams.append('rangeStart', rangeStart);
+        url.searchParams.append('rangeEnd', rangeEnd);
+        url.searchParams.append('time_zone', userTimeZone);
+        url.searchParams.append('show_all_expenses', showAllExpenses);
+
+        const response = await fetch(url.toString(), {
+            method: "GET",
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+
+        history.pushState(null, null, url.toString());
+
+        if (!response.ok) {
+            hideGlobalLoader();
+            const errorData = await response.json();
+
+            if (response.status === 307) {
+                showSessionExpiredModal(errorData.detail);
+            } else {
+                showErrorToast(errorData.detail || "Неизвестная ошибка. Повторите попытку позже.");
+                console.error('Ошибка при загрузке расходов:', errorData.detail);
+            }
+            return;
+        }
+
+        const data = await response.json();
+
+        if (data.error_message) {
+            showErrorToast(data.error_message);
+            return;
+        }
+
+        if (data.expenses.length === 0) {
+            showInfoToast("Нет данных за выбранный период.");
+            return;
+        }
+
+        await loadExpenses(data);
+    } catch (error) {
+        console.error('Ошибка при загрузке расходов:', error);
+    } finally {
+        hideGlobalLoader();
+    }
+});

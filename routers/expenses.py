@@ -18,7 +18,8 @@ from routers.directory.tinkoff_expenses import (
     save_keyword_to_db,
     remove_keyword_from_category,
     get_last_unreceived_error,
-    set_temporary_code
+    set_temporary_code,
+    get_card_nums_for_transfer_notifications
 )
 from routers.directory.bot import get_card_number_by_chat_id
 
@@ -57,6 +58,7 @@ async def show_expenses_page(request: Request):
 async def get_expenses(
     request: Request,
     token: Optional[str] = Query(None),  # Если передан, значит, запрос от бота
+    show_all_expenses: bool = Query(False),
     period: Optional[str] = None,
     rangeStart: Optional[str] = None,
     rangeEnd: Optional[str] = None,
@@ -90,7 +92,7 @@ async def get_expenses(
         if source == 'tinkoff':
             expenses_data = await get_expenses_from_tinkoff(unix_range_start, unix_range_end, db, time_zone)
         else:
-            expenses_data = get_expenses_from_db(db, unix_range_start, unix_range_end, time_zone, card_num)
+            expenses_data = get_expenses_from_db(db, unix_range_start, unix_range_end, time_zone, card_num, show_all_expenses)
     except Exception as e:
         print(f"Ошибка загрузки расходов: {e}")
         return response_with_token(request, 
@@ -100,7 +102,7 @@ async def get_expenses(
                                     time_zone, 
                                     "Необходима авторизация")
 
-    return generate_expense_response(request, expenses_data, token is not None)
+    return generate_expense_response(request, expenses_data, token is not None, card_num in get_card_nums_for_transfer_notifications(db))
 
 
 async def process_bot_request(token: str, db: Session) -> str:
@@ -130,18 +132,29 @@ async def get_expenses_from_tinkoff(start: int, end: int, db: Session, time_zone
         raise HTTPException(status_code=403, detail="Необходима авторизация.")
 
 
-def generate_expense_response(request: Request, expenses_data: dict, is_bot: bool):
+def generate_expense_response(request: Request, expenses_data: dict, is_bot: bool, can_view_all_expenses: bool):
     """Формирует JSON или HTML-ответ."""
     if not expenses_data["expenses"]:
         error_message = "Данные за выбранный период отсутствуют."
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
             return JSONResponse(status_code=200, content={"error_message": error_message})
-        return templates.TemplateResponse(PageType.EXPENSES.template_path(), {"request": request, "error_message": error_message, "expenses": [], "is_miniapp": is_bot})
+        return templates.TemplateResponse(PageType.EXPENSES.template_path(), {
+                                                                                "request": request, 
+                                                                                "error_message": error_message, 
+                                                                                "expenses": [], 
+                                                                                "is_miniapp": is_bot,
+                                                                                "can_view_all_expenses": can_view_all_expenses
+                                                                                })
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
         return JSONResponse(content=expenses_data)
 
-    return templates.TemplateResponse(PageType.EXPENSES.template_path(), {"request": request, "expenses": json.dumps(expenses_data), "is_miniapp": is_bot})
+    return templates.TemplateResponse(PageType.EXPENSES.template_path(), {
+                                                                            "request": request, 
+                                                                            "expenses": json.dumps(expenses_data), 
+                                                                            "is_miniapp": is_bot,
+                                                                            "can_view_all_expenses": can_view_all_expenses
+                                                                            })
 
 
 def response_with_token(request, period, rangeStart, rangeEnd, time_zone, message):

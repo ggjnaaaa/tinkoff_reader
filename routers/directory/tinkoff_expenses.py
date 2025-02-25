@@ -21,10 +21,11 @@ from models import (
     CategoryExpenses,
     CategoryKeyword,
     TemporaryCode, 
-    LastError
+    LastError,
+    TgTmpUsers,
+    UserNotifications,
+    Users
 ) 
-
-from config import TRANSFER_NOTIFICATION_USERS
 
 
 def get_expenses_from_db(
@@ -33,7 +34,8 @@ def get_expenses_from_db(
     unix_range_end: Optional[int] = None,
     timezone_str: str = "Europe/Moscow",
     card_number: Optional[str] = None,
-    sort_order: str = "desc"  # Новый параметр: "asc" (от раннего) или "desc" (от позднего)
+    show_all_expenses: bool = False,
+    sort_order: str = "desc"  # "asc" (от раннего) или "desc" (от позднего)
 ):
     """
     Получение расходов за выбранный период из базы данных.
@@ -47,8 +49,9 @@ def get_expenses_from_db(
         query = query.filter(Expense.timestamp <= unix_range_end)
 
     # Фильтрация по номеру карты
-    if card_number:
-        if card_number in TRANSFER_NOTIFICATION_USERS:
+    if card_number and not show_all_expenses:
+        transfer_notifications_users = get_card_nums_for_transfer_notifications(db)
+        if card_number in transfer_notifications_users:
             query = query.filter(
                 (Expense.card_number == "*" + card_number) | (Expense.card_number == "")
             )
@@ -337,3 +340,45 @@ def get_last_unreceived_error(db: Session):
         last_error.is_received = True  # Отмечаем ошибку как полученную
         db.commit()
     return last_error
+
+
+def get_chat_ids_for_error_notifications(db: Session):
+    """
+    Получает список chat_id из tg_tmp_users для пользователей,
+    которым нужно отправлять сообщения об ошибках.
+    """
+    query = (
+        select(TgTmpUsers.chat_id)
+        .join(UserNotifications, TgTmpUsers.user_id == UserNotifications.user_id)
+        .where(UserNotifications.receive_error_notifications == True)
+    )
+    result = db.execute(query)
+    return [str(row[0]) for row in result.fetchall()]
+
+
+def get_chat_ids_for_transfer_notifications(db: Session):
+    """
+    Получает список chat_id из tg_tmp_users для пользователей,
+    которым нужно отправлять все расходы.
+    """
+    query = (
+        select(TgTmpUsers.chat_id)
+        .join(UserNotifications, TgTmpUsers.user_id == UserNotifications.user_id)
+        .where(UserNotifications.receive_transfer_notifications == True)
+    )
+    result = db.execute(query)
+    return [str(row[0]) for row in result.fetchall()]
+
+
+def get_card_nums_for_transfer_notifications(db: Session):
+    """
+    Получает список карт из users для пользователей,
+    которым нужно отправлять все расходы.
+    """
+    query = (
+        select(Users.card_number)
+        .join(UserNotifications, Users.id == UserNotifications.user_id)
+        .where(UserNotifications.receive_transfer_notifications == True)
+    )
+    result = db.execute(query)
+    return [str(row[0]) for row in result.fetchall()]

@@ -100,3 +100,15 @@ class Users(Base):
     is_investor = Column(Boolean, default=False)
     change_salary = Column(Boolean, default=False)
     card_number = Column(Text)
+
+
+class UserNotifications(Base):
+    __tablename__ = "user_notifications"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, unique=True)
+    receive_error_notifications = Column(Boolean, default=False)
+    receive_transfer_notifications = Column(Boolean, default=False)
+
+    # Связь с таблицей Users
+    user = relationship("Users", backref="notifications")
