@@ -126,7 +126,7 @@ async def fetch_expenses(browser, db):
 
 async def go_to_expenses(browser, db):
     await browser.page.goto(config.EXPENSES_URL, timeout=30000)  # Переход на страницу расходов
-    detected_type = await detect_page_type(browser, 20)  # Асинхронное определение типа страницы
+    detected_type = await detect_page_type(browser, 40)  # Асинхронное определение типа страницы
 
     if detected_type:
         # Отмена входа по смс, переход на вход через номер телефона

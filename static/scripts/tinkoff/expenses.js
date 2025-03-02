@@ -265,7 +265,31 @@ function saveSchedule() {
     })
     .then(response => response.json())
     .then(data => {
-        showNotificationToast(data.message);
+        if (data.status === 'success') {
+            showNotificationToast(data.message);
+        } else {
+            showErrorToast(`Ошибка: ${data.message}`);
+        }
+    })
+    .catch((error) => {
+        console.log(error)
+    });
+}
+
+function saveCache() {
+    fetch('/tinkoff/save_session/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showNotificationToast(data.message);
+        } else {
+            showErrorToast(`Ошибка: ${data.message}`);
+        }
     })
     .catch((error) => {
         console.log(error)

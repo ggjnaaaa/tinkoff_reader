@@ -12,7 +12,8 @@ from routers import (
     start,
     bot,
     expenses,
-    scheduler
+    scheduler,
+    browser_session
 )
 
 from utils.tinkoff.scheduler_utils import start_scheduler
@@ -28,6 +29,7 @@ app.include_router(general.router)
 app.include_router(start.router)
 app.include_router(bot.router)
 app.include_router(scheduler.router)
+app.include_router(browser_session.router)
 
 # Запуск планировщика в отдельном потоке
 scheduler_thread = Thread(target=start_scheduler, daemon=True)

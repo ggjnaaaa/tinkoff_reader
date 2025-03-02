@@ -6,6 +6,9 @@ import asyncio, shutil, os, json
 # Сторонние модули
 from playwright.async_api import async_playwright
 
+# Собственные модули
+from utils.google_drive_file_utils import download_file
+
 
 class BrowserManager:
     def __init__(self, path_to_profile, download_dir, timeout):
@@ -38,8 +41,9 @@ class BrowserManager:
             # Создаем и сохраняем пустой JSON состояния, если его нет
             storage_state_file = os.path.join(self.path_to_profile, "storage_state.json")
             if not os.path.exists(storage_state_file):
-                with open(storage_state_file, 'w') as f:
-                    json.dump({}, f)
+                if not download_file("storage_state.json", self.path_to_profile):
+                    with open(storage_state_file, 'w') as f:
+                        json.dump({}, f)
             
             # Создаем контекст
             self.context = await self.browser.new_context(

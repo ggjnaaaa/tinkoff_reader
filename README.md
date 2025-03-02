@@ -9,6 +9,7 @@ pip install fuzzywuzzy (+pip install python-Levenshtein, если вылезае
 pip install python-jose  
 pip install passlib  
 pip install gspread gspread-formatting  
+pip install google-api-python-client google-auth google-auth-oauthlib google-auth-httplib2  
 
 
 ```playwright install chromium``` (чтобы установить драйвер для playwright, выполнить 1 раз)
@@ -82,6 +83,17 @@ CREATE TABLE tinkoff_schedule (
 ```
 
 ## История изменений (начиная с новых)
+
+### 03.03.25
+Добавлено:
+1. Кнопка в боковое меню, позволяющая выгрузить в гугл диск кэш браузера (нужен только файл
+для апи гугла)
+2. Если файла кэша нет в папке, то сначала попытка выгрузить с гугла, если его там не было,
+то создаётся пустой
+
+Изменено:  
+Исправление мелких багов.
+
 
 ### 02.03.25
 Изменено:

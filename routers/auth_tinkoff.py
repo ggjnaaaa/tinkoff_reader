@@ -2,7 +2,6 @@
 
 # Стандартные модули Python
 import asyncio
-import os
 
 # Сторонние модули
 from fastapi import APIRouter, HTTPException, Body, Request, Query, Depends
@@ -230,22 +229,6 @@ async def cancel_otp():
     except Exception as e:
         print(f"Ошибка при нажатии на кнопку: {e}")
         raise HTTPException(status_code=500, detail="Не удалось отменить вход по временному паролю.")
-
-
-@router.post('/tinkoff/reset_session/')
-async def reset_session():
-    if await check_for_browser(browser):
-        await browser.close_browser()
-
-    file_path = config.PATH_TO_CHROME_PROFILE + "/storage_state.json"
-    try:
-        if os.path.exists(file_path):
-            os.remove(file_path)
-            return {"status": "success", "message": "Сессия сброшена."}
-        else:
-            return {"status": "error", "message": "Файл не найден, сессия уже сброшена."}
-    except Exception as e:
-        return {"status": "error", "message": f"Ошибка при удалении файла: {e}"}
     
 
 async def check_for_browser(browser: BrowserManager):

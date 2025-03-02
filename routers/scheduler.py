@@ -57,6 +57,6 @@ async def update_schedule(schedule_data: ScheduleData,
         update_scheduler(expenses_time, full_time)
     except Exception as e:
         print(f"Ошибка при изменении времени выгрузки расходов: {str(e)}")
-        return {"message": "Не удалось обновить расписание"}
+        return {"status": "error", "message": "Не удалось обновить расписание"}
 
-    return {"message": "Расписание успешно обновлено", "expenses": expenses_time, "full": full_time}
+    return {"status": "success", "message": "Расписание успешно обновлено", "expenses": expenses_time, "full": full_time}
