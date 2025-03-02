@@ -102,6 +102,7 @@ def get_expenses_from_db(
     query = filter_by_card_number(query, db, card_number, show_all_expenses)
     
     # Применение сортировки
+    sort_order = 'asc' if card_number else sort_order
     query = sort_expenses(query, sort_order)
     
     expenses = query.all()
