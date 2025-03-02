@@ -81,6 +81,9 @@
 
 /* Боковое меню */
 .side-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
     position: fixed;
     top: 77px;
     left: -250px;
@@ -126,10 +129,21 @@
     cursor: pointer;
     font-size: 12px;
     border-radius: 4px;
+    margin: 3px 0;
 }
 
 .side-menu ul li button:hover {
     background-color: #1abc9c;
+}
+
+.scheduler-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.side-menu-label {
+    color: #FFF;
 }
 
 /* Скрыть кнопку-бургер при активном меню */

@@ -1,4 +1,4 @@
-﻿# utils/browser_input_utils.py
+﻿# utils/tinkoff/browser_input_utils.py
 
 # Стандартные модули Python
 import time

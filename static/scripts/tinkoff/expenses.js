@@ -246,3 +246,28 @@ function resetTinkoffSession() {
         alert(`Произошла ошибка: ${error}`);
     });
 }
+
+function saveSchedule() {
+    const scheduler1 = document.getElementById('scheduler1').value;
+    const scheduler2 = document.getElementById('scheduler2').value;
+
+    const scheduleData = {
+        expenses: scheduler1,  // первая автовыгрузка
+        full: scheduler2       // вторая автовыгрузка
+    };
+
+    fetch('/tinkoff/schedular/', {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(scheduleData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        showNotificationToast(data.message);
+    })
+    .catch((error) => {
+        console.log(error)
+    });
+}

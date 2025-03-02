@@ -3,7 +3,7 @@
 from utils.tinkoff.browser_utils import PageType
 
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, TIMESTAMP, BigInteger
+from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, TIMESTAMP, BigInteger, func, Time
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from typing import List
@@ -29,6 +29,12 @@ class SaveKeywordsRequest(BaseModel):
 
 class TokenizedUrlRequest(BaseModel):
     token: str  # Токен из ссылки
+
+
+# Модель для входных данных
+class ScheduleData(BaseModel):
+    expenses: str
+    full: str
 
 
 class CategoryExpenses(Base):
@@ -112,3 +118,12 @@ class UserNotifications(Base):
 
     # Связь с таблицей Users
     user = relationship("Users", backref="notifications")
+
+
+class Schedule(Base):
+    __tablename__ = "tinkoff_schedule"
+
+    id = Column(Integer, primary_key=True, index=True)
+    export_type = Column(String, nullable=False)  # 'expenses' или 'full'
+    export_time = Column(Time, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())

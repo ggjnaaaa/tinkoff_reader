@@ -1,4 +1,4 @@
-# expenses_utils.py
+# utils/tinkoff/expenses_utils.py
 
 # Стандартные модули Python
 import os
@@ -24,10 +24,9 @@ from utils.tinkoff.browser_utils import (
     click_button
 )
 
-from routers.directory.tinkoff_expenses import (
-    get_categories_with_keywords,
-    save_expenses_to_db
-)
+from routers.directory.tinkoff.categories import get_categories_with_keywords
+from routers.directory.tinkoff.expenses import save_expenses_to_db
+
 from routers.auth_tinkoff import (
     save_browser_cache,
     check_for_page

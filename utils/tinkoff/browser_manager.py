@@ -1,4 +1,4 @@
-# browser_manager.py
+# utils/tinkoff/browser_manager.py
 
 # Стандартные библиотеки Python
 import asyncio, shutil, os, json

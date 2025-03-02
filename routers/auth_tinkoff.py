@@ -1,18 +1,18 @@
-# auth_tinkoff.py
+# routes/auth_tinkoff.py
 
 # Стандартные модули Python
 import asyncio
 import os
-import time
 
 # Сторонние модули
-from fastapi import APIRouter, HTTPException, Body, Request, Query
+from fastapi import APIRouter, HTTPException, Body, Request, Query, Depends
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
+from typing import Optional
 
 # Собственные модули
 from models import LoginResponse
-from auth import decode_access_token, verify_bot_token
+from auth import decode_access_token
 
 import config as config
 from config import (
@@ -21,9 +21,12 @@ from config import (
     browser_instance as browser
 )
 
+from utils.bot import check_miniapp_token
 from utils.tinkoff.browser_manager import BrowserManager
 from utils.tinkoff.browser_input_utils import paged_login, close_login_via_sms_page, get_user_name_from_otp_login, skip_control_questions
 from utils.tinkoff.browser_utils import get_text, detect_page_type, PageType, click_button
+
+from database import Session
 
 # from dependencies import get_authenticated_user
 
@@ -32,15 +35,23 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
 
+def get_db():
+    db = Session()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @router.get("/tinkoff/")
-async def get_login_type(request: Request, token: str = Query(default=None)):
+async def get_login_type(request: Request, token: Optional[str] = Query(default=None)):
     """
     Вход в тинькофф.
     Инициализирует браузер, если нужно.
     Переходит на расходы.
     """
     global browser
-
+    
     if token:
         if not check_miniapp_token(token):
             return
@@ -65,7 +76,7 @@ async def get_login_type(request: Request, token: str = Query(default=None)):
         detected_type = await detect_page_type(browser, 10)  # Асинхронное определение типа страницы
 
         if detected_type:
-            return await next_page(request, detected_type.value, token)
+            return await next_page(request=request, step=detected_type.value, token=token)
         else:
             raise HTTPException(status_code=500, detail="Ошибка входа в тинькофф. Попробуйте войти снова")
     except Exception as e:
@@ -74,7 +85,7 @@ async def get_login_type(request: Request, token: str = Query(default=None)):
     
 
 @router.post("/tinkoff/login/", response_model=LoginResponse)
-async def login(request: Request, data: str = Body(...), token: str = Query(default=None)):
+async def login(request: Request, data: str = Body(...), token: Optional[str] = Query(default=None)):
     """
     Ввод инфы в инпуты
     """
@@ -102,7 +113,7 @@ async def login(request: Request, data: str = Body(...), token: str = Query(defa
 
 
 @router.get("/tinkoff/next/")
-async def next_page(request: Request, step: str | None = Query(default=None), token: str = Query(default=None)):
+async def next_page(request: Request, step: str | None = Query(default=None), db: Session = Depends(get_db), token: Optional[str] = Query(default=None)):
     """
     Универсальный эндпоинт для загрузки следующей страницы.
     """
@@ -115,7 +126,7 @@ async def next_page(request: Request, step: str | None = Query(default=None), to
 
     
     # Если страница неактивна кидаем ошибку
-    if not await browser.is_page_active():
+    if not browser or not await browser.is_page_active():
         raise HTTPException(status_code=307, detail="Сессия истекла. Пожалуйста, войдите заново.")
     
     # Определяем `page_type`, пытаясь преобразовать `step` в `PageType`
@@ -147,9 +158,8 @@ async def next_page(request: Request, step: str | None = Query(default=None), to
     
     if page_type == PageType.EXPENSES:
         if token:
-            from utils.tinkoff.fixed_time_import_expenses import load_expenses
-
-            asyncio.create_task(load_expenses())
+            from utils.tinkoff.fixed_time_import_expenses import resume_load_expenses
+            await resume_load_expenses(db, token)
             return templates.TemplateResponse("tinkoff/success_login.html", {"request": request})
         redirect = redirect_by_token(request)
         if redirect:
@@ -286,24 +296,3 @@ def redirect_by_token(request: Request):
             response.delete_cookie("temp_token")
             return response
     return None
-
-
-def check_miniapp_token(token: str):
-    """
-    Проверяет токенизированный доступ и записывает данные в tg_tmp_users.
-    """
-    try:
-        # Проверяем токен и извлекаем данные
-        user_data = verify_bot_token(token)
-        chat_id = int(user_data.get("chat_id"))
-        auth_date = int(user_data.get("auth_date", 0))
-
-        if (int(time.time()) - auth_date) > 25 * 3600:
-            raise HTTPException(status_code=401, detail="Токен истёк. Запросите ссылку заново.")
-
-        if not chat_id:
-            raise HTTPException(status_code=400, detail="Некорректный токен: отсутствует chat_id.")
-
-        return True
-    except ValueError as e:
-        raise HTTPException(status_code=403, detail=str(e))

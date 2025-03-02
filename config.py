@@ -5,8 +5,8 @@ from utils.tinkoff.browser_manager import BrowserManager
 BROWSER_TIMEOUT: int = 180  # 3 минута
 
 EXPENSES_URL: str = f"https://www.tbank.ru/auth/login/?redirectTo=%2Fevents%2Ffeed%2F&redirectType="
-PATH_TO_CHROME_PROFILE="./chrome_data/"   #                                                 <--- ЗАМЕНИТЬ
-DOWNLOAD_DIRECTORY="./downloads/"   #                                                       <--- ЗАМЕНИТЬ
+PATH_TO_CHROME_PROFILE="./chrome_data/"   #             <--- ЗАМЕНИТЬ
+DOWNLOAD_DIRECTORY="./downloads/"   #                   <--- ЗАМЕНИТЬ
 GOOGLE_SHEETS_URL='https://docs.google.com/spreadsheets/...'  #                             <--- ЗАМЕНИТЬ
 DATABASE_URL = "postgresql://...:...@.../..."  #                                            <--- ЗАМЕНИТЬ
 

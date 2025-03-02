@@ -51,12 +51,32 @@
 
             <!-- Боковое меню -->
             <div id="sideMenu" class="side-menu">
-                <button class="close-btn" onclick="toggleMenu()">&times;</button>
-                <ul>
-                    <li><button onclick="loginToTinkoff()">Войти в Тинькофф</button></li>
-                    <li><button onclick="resetTinkoffSession()">Сбросить текущую сессию</button></li>
-                </ul>
-            </div>
+                <div class="tinkoff-session-menu">
+                    <button class="close-btn" onclick="toggleMenu()">&times;</button>
+                    <ul>
+                        <li><button onclick="loginToTinkoff()">Войти в Тинькофф</button></li>
+                        <li><button onclick="resetTinkoffSession()">Сбросить текущую сессию</button></li>
+                    </ul>
+                </div>
+
+                <hr>
+
+                <div class="scheduler-menu">
+                    <h3>Настройка расписания</h3>
+
+                    <div class="scheduler-menu" style="gap: 5px;">
+                        <label class="side-menu-label" for="scheduler1">Первая автовыгрузка:</label>
+                        <input type="time" id="scheduler1" value="{{ first_import_time }}">
+                    </div>
+
+                    <div class="scheduler-menu" style="gap: 5px;">
+                        <label class="side-menu-label" for="scheduler2">Вторая автовыгрузка:</label>
+                        <input type="time" id="scheduler2" value="{{ second_import_time }}">
+                    </div>
+
+                    <button onclick="saveSchedule()">Сохранить</button>
+                </div>
+            </div>   
         </div>
     {% endif %}
 

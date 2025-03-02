@@ -1,4 +1,4 @@
-# general.py
+# routes/general.py
 
 # Сторонние модули
 from fastapi import APIRouter

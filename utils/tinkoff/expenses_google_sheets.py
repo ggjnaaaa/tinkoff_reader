@@ -1,3 +1,4 @@
+# utils/tinkoff/expenses_google_sheets.py
 
 import locale
 import re
@@ -6,7 +7,7 @@ from pytz import timezone
 from datetime import datetime
 import gspread
 
-from routers.directory.tinkoff_expenses import get_expenses_from_db
+from routers.directory.tinkoff.expenses import get_expenses_from_db
 from utils.tinkoff.time_utils import get_period_range
 
 from config import GOOGLE_SHEETS_URL

@@ -1,44 +1,31 @@
-# fixed_time_import_expenses.py
+# utils/tinkoff/fixed_time_import_expenses.py
 
 # Стандартные модули Python
 import time
-import asyncio
-from datetime import datetime, timezone
-import requests
-from contextlib import contextmanager
+import logging
+from datetime import datetime, timezone, timedelta
+import pytz
 
 # Сторонние модули
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
-import pytz
-from fastapi import Depends
+from fastapi import HTTPException
 
 # Собственные модули
 import config
 
 from database import Session
 
-from models import Users, TgTmpUsers
+from routers.directory.tinkoff.errors import set_last_error
+from routers.directory.tinkoff.expenses import save_expenses_to_db
+from routers.directory.tinkoff.categories import get_categories_with_keywords
+from routers.directory.tinkoff.scheduler import get_import_times
+from routers.directory.tinkoff.temporary_codes import get_temporary_code
 
-from routers.auth_tinkoff import check_for_browser, check_for_page
-from routers.directory.tinkoff_expenses import (
-    set_last_error,
-    get_temporary_code,
-    save_expenses_to_db,
-    get_categories_with_keywords,
-    get_expenses_from_db,
-    get_chat_ids_for_error_notifications,
-    get_chat_ids_for_transfer_notifications
-)
-
-from utils.tinkoff.browser_input_utils import otp_page
 from utils.tinkoff.time_utils import get_period_range
 from utils.tinkoff.browser_manager import BrowserManager
-from utils.tinkoff.browser_utils import (
-    detect_page_type, 
-    PageType, 
-    detect_page_type_after_url_change
-)
+from utils.tinkoff.expenses_google_sheets import sync_expenses_to_sheet_no_id
+from utils.tinkoff.browser_utils import PageType, detect_page_type
+from utils.tinkoff.browser_input_utils import otp_page, check_for_error_message
+from utils.tinkoff.send_notifications import send_error_notification, send_expense_notification
 from utils.tinkoff.expenses_utils import (
     expenses_redirect,
     download_csv_from_expenses_page,
@@ -46,114 +33,149 @@ from utils.tinkoff.expenses_utils import (
     wait_for_new_download
 )
 
+from auth import verify_bot_token
 
-from utils.tinkoff.expenses_google_sheets import sync_expenses_to_sheet_no_id
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Часовой пояс Москвы
+# Московский часовой пояс
 moscow_tz = pytz.timezone("Europe/Moscow")
 
 
-async def load_expenses():
-    print(f"Начата автозагрузка расходов (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')})")
+async def resume_load_expenses(db, token):
+    # Получаем текущее время в Москве
+    now = datetime.now(moscow_tz)
+
+    # Декодируем auth_date из Unix timestamp
+    user_data = verify_bot_token(token)
+    auth_date = int(user_data.get("auth_date", 0))
+    error_date = datetime.fromtimestamp(auth_date, moscow_tz).date()
+
+    # Получаем времена из базы
+    schedule_time = get_import_times(db)
+    expense_time = schedule_time["expenses"]
+    full_time = schedule_time["full"]
+
+    # Конвертируем `time` в `datetime` для удобного сравнения
+    expense_datetime = moscow_tz.localize(datetime.combine(error_date, expense_time))
+    full_datetime = moscow_tz.localize(datetime.combine(error_date, full_time))
+    
+    # Добавляем 5-минутный интервал
+    five_min = timedelta(minutes=5)
+
+    # Проверяем условия
+    if now >= expense_datetime and now >= full_datetime:
+        await load_expenses("all")  # Оба времени прошли
+    elif now >= expense_datetime and (full_datetime - datetime.now(moscow_tz) <= five_min):
+        await load_expenses("all")  # Expense прошло, до Full < 5 мин
+    elif now >= full_datetime and (expense_datetime - datetime.now(moscow_tz) <= five_min):
+        await load_expenses("all")  # Full прошло, до Expense < 5 мин
+    elif now >= expense_datetime and (full_datetime - datetime.now(moscow_tz) > five_min):
+        await load_expenses("expenses") # Expense прошло, до Full > 5 мин
+    elif now >= full_datetime and (expense_datetime - datetime.now(moscow_tz) > five_min):
+        await load_expenses("full")  # Full прошло, до Expense > 5 мин
+
+
+
+async def load_expenses(export_type: str):
+    """
+    Загружает расходы и отправляет пользователям уведомления.
+    """
+    logger.info(f"Начата автозагрузка расходов (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')})  |  тип выгрузки: {export_type}")
     retries = 3
     attempts_completed = 0
     last_error = ""
-    db = None
-    browser = None
-
+    db, browser = None, None
     while attempts_completed < retries:
         try:
-            db = Session()
-
-            if await check_for_page(browser):
-                browser.reset_interaction_time()
-            elif await check_for_browser(browser):
-                await browser.create_context_and_page()
-            else:
-                browser = BrowserManager(config.PATH_TO_CHROME_PROFILE,
-                                        config.DOWNLOAD_DIRECTORY,
-                                        config.BROWSER_TIMEOUT)
-                await browser.create_context_and_page()
-            
-            await browser.page.goto(config.EXPENSES_URL, timeout=30000)  # Переход на страницу расходов
-            detected_type = await detect_page_type(browser, 20)  # Асинхронное определение типа страницы
-
-            if detected_type:
-                # Отмена входа по смс, переход на вход через номер телефона
-                if detected_type == PageType.EXPENSES:
-                    pass
-                
-                elif detected_type == PageType.LOGIN_OTP:
-                    otp = ""
-                    try:
-                        otp = get_temporary_code(db)
-                    except ValueError:
-                        attempts_completed = retries
-                        raise
-                    except:
-                        raise
-
-                    initial_url = browser.page.url
-                    await otp_page(browser, otp)
-                    if await detect_page_type_after_url_change(browser, initial_url, 15) != PageType.EXPENSES:
-                        raise Exception("Временная проблема автозагрузки")
-
-                else:
-                    raise Exception("Проблема со входом при автозагрузке. Требуется повторный вход")
-                
-            else:
-                raise Exception("Проблема с определением типа страницы при автозагрузке расходов")
-
-            unix_range_start, unix_range_end = get_period_range(
-                timezone="Europe/Moscow",
-                range_start=None,
-                range_end=None,
-                period="week"
-            )
-            await load_expenses_from_site(browser, unix_range_start, unix_range_end, db, "Europe/Moscow")
-            print(f"Успешно завершена автозагрузка расходов (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')})")
-            if browser:
-                await browser.close_browser()
-            send_expense_notification(db)
-            sync_expenses_to_sheet_no_id(db, "day")
+            db, browser = await setup_browser_and_db()
+            await go_to_expenses(browser, db)
+            expenses = await fetch_expenses(browser, db)
+            if export_type == "expenses":
+                send_expense_notification(db)
+            elif export_type == "full":
+                sync_expenses_to_sheet_no_id(db, "rolling26hours")
+            elif export_type == "all":
+                send_expense_notification(db)
+                sync_expenses_to_sheet_no_id(db, "rolling26hours")
+            logger.info(f"Успешно завершена автозагрузка расходов (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')})")
             return
+        except ValueError as e:
+            last_error = e
+            attempts_completed = retries
         except Exception as e:
             last_error = e
             attempts_completed += 1
+        finally:
+            await cleanup(browser, db)
+            
+    logger.warning(f"Автозагрузка расходов завершена с ошибкой (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')}) : ${last_error}")
+    await handle_error(last_error, db, browser)
 
-    print(f"Автозагрузка расходов завершена с ошибкой (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')}) : ${last_error}")
+
+async def fetch_expenses(browser, db):
+    """
+    Загружает расходы с сайта и сохраняет в БД.
+    """
+    unix_range_start, unix_range_end = get_period_range(
+        timezone="Europe/Moscow", range_start=None, range_end=None, period="week"
+    )
+    return await load_expenses_from_site(browser, unix_range_start, unix_range_end, db, "Europe/Moscow")
+
+
+async def go_to_expenses(browser, db):
+    await browser.page.goto(config.EXPENSES_URL, timeout=30000)  # Переход на страницу расходов
+    detected_type = await detect_page_type(browser, 20)  # Асинхронное определение типа страницы
+
+    if detected_type:
+        # Отмена входа по смс, переход на вход через номер телефона
+        if detected_type == PageType.EXPENSES:
+            pass
+        
+        elif detected_type == PageType.LOGIN_OTP:
+            otp = get_temporary_code(db)
+
+            await otp_page(browser, otp)
+            if await check_for_error_message(browser, 2):
+                raise ValueError("Неверный временный код")
+            if await detect_page_type(browser, 15) != PageType.EXPENSES:
+                raise Exception("Временная проблема автозагрузки")
+
+        else:
+            raise Exception("Проблема со входом при автозагрузке. Требуется повторный вход")
+        
+    else:
+        raise Exception("Проблема с определением типа страницы при автозагрузке расходов")
+
+
+async def setup_browser_and_db():
+    """
+    Подключает БД и браузер.
+    """
+    db = Session()
+    browser = BrowserManager(config.PATH_TO_CHROME_PROFILE, config.DOWNLOAD_DIRECTORY, config.BROWSER_TIMEOUT)
+    await browser.create_context_and_page()
+    return db, browser
+
+
+async def handle_error(error, db, browser):
+    """
+    Логирование ошибок и уведомление.
+    """
+    if db:
+        set_last_error(db, str(error))
+    send_error_notification(db)
+
+
+async def cleanup(browser, db):
+    """
+    Закрывает браузер и соединение с БД.
+    """
     if browser:
         await browser.close_browser()
     if db:
-        set_last_error(db, str(last_error))
-    else:
-        print(f"Невозможно записать сообщение об ошибке в БД. Ошибка: {last_error}")
-
-    get_error_notification_chat_ids(db)
-
-
-# Обёртка для вызова асинхронной функции в синхронном контексте
-def async_to_sync(async_func):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        # Если нет текущего цикла событий, создаём новый
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-    return loop.run_until_complete(async_func())
-
-
-def start_scheduler():
-    scheduler = BackgroundScheduler(timezone=moscow_tz)
-    # Используем обёртку для вызова асинхронной функции
-    scheduler.add_job(lambda: async_to_sync(load_expenses), CronTrigger(hour=21, minute=0, timezone=moscow_tz))
-    scheduler.start()
-    try:
-        while True:
-            time.sleep(1)  # Поддерживаем поток активным
-    except (KeyboardInterrupt, SystemExit):
-        scheduler.shutdown()
+        db.close()
 
 
 async def load_expenses_from_site(browser, unix_range_start, unix_range_end, db, time_zone):
@@ -164,7 +186,6 @@ async def load_expenses_from_site(browser, unix_range_start, unix_range_end, db,
         # Перенаправление на страницу по периоду и скачивание CSV
         if await expenses_redirect(browser.page, unix_range_start, unix_range_end):
             time.sleep(1)  # Ожидание после перенаправления
-
         start_time = time.time()
         await download_csv_from_expenses_page(browser.page, 20)
         file_path = await wait_for_new_download(start_time=start_time, timeout=20)
@@ -177,83 +198,3 @@ async def load_expenses_from_site(browser, unix_range_start, unix_range_end, db,
         return expenses
     except:
         raise Exception("Ошибка при загрузке расходов с Тинькофф")
-
-
-def send_expense_notification(db):
-    """
-    Вызывает эндпоинт на сервере бота для рассылки уведомлений пользователям у которых были расходы за сегодня.
-    """
-    try:
-        # Получаем уникальные карты за сегодня
-        try:
-            unique_cards = set([card.lstrip('*') for card in get_today_uniq_cards(db)])  # Убираем звезды из начала карт
-        except Exception as e:
-            print(f"{e}")
-            return
-
-        transfer_chat_ids = get_chat_ids_for_transfer_notifications(db)
-        chat_ids = None
-
-        if not unique_cards and not transfer_chat_ids:
-            return
-        
-        if unique_cards:
-            # Получение chat_id из TgTmpUsers с проверкой наличия card_number в Users
-            chat_ids = db.query(TgTmpUsers.chat_id).join(Users).filter(
-                Users.card_number.in_(unique_cards)  # Фильтруем только по картам из unique_cards
-            ).all()
-        
-        # Преобразование результата в список
-        chat_ids = list(set(str(chat_id[0]) for chat_id in chat_ids) | set(transfer_chat_ids))
-
-        response = requests.post(
-            config.AUTO_SAVE_MAILING_BOT_API_URL,
-            json={"chat_ids": chat_ids},
-            timeout=10
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Ошибка при отправке данных на сервер бота: {e}")
-
-
-def get_error_notification_chat_ids(db):
-    """
-    Получает chat_id из TgTmpUsers с проверкой наличия card_number в Users для списка пользователей для рассылки ошибок.
-
-    :param db: Сессия базы данных
-    :param error_notification_users: Список номеров карты пользователей для рассылки ошибок
-    :return: Список chat_id
-    """
-    try:
-        chat_ids = get_chat_ids_for_error_notifications(db)
-
-        response = requests.post(
-            config.AUTO_SAVE_ERROR_MAILING_BOT_API_URL,
-            json={"chat_ids": chat_ids},
-            timeout=10
-        )
-        response.raise_for_status()
-
-        return response.json()
-    except requests.RequestException as e:
-        print(f"Ошибка при отправке данных на сервер бота: {e}")
-
-
-def get_today_uniq_cards(db):
-
-    # Определяем временные диапазоны
-    unix_range_start, unix_range_end = get_period_range(
-        timezone="Europe/Moscow",
-        period='day'
-    )
-
-    # Получаем данные расходов
-    expenses_data = get_expenses_from_db(db, unix_range_start, unix_range_end, "Europe/Moscow")
-    cards = expenses_data.get("cards", None)
-
-    if cards:
-        return set(cards)
-    
-    raise Exception('Расходы за день отсутствуют')
-

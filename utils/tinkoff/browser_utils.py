@@ -1,4 +1,4 @@
-# browser_utils.py
+# utils/tinkoff/browser_utils.py
 
 # Стандартные модули Python
 from enum import Enum

@@ -1,4 +1,4 @@
-# time_utils.py
+# utils/tinkoff/time_utils.py
 
 # Стандартные модули Python
 from datetime import timezone, datetime, timedelta
@@ -54,6 +54,10 @@ def get_period_from_default_range(period, timezone):
     elif period == "year":
         start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
         end = now.replace(month=12, day=31, hour=23, minute=59, second=59, microsecond=999999)
+
+    elif period == "rolling26hours":
+        start = now - timedelta(hours=26)
+        end = now
 
     else:
         raise ValueError("Unsupported period type. Use 'day', 'week', 'month', '3month', or 'year'.")

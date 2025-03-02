@@ -1,4 +1,4 @@
-# expenses.py
+# routes/expenses.py
 
 # Библиотеки Python
 import json
@@ -6,22 +6,26 @@ import time
 
 # Сторонние библиотеки
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional
 
 # Собственные модули
-from routers.auth_tinkoff import get_browser, check_for_browser, check_miniapp_token
-from routers.directory.tinkoff_expenses import (
-    get_expenses_from_db,
+from routers.auth_tinkoff import get_browser, check_for_browser
+
+from routers.directory.tinkoff.expenses import get_expenses_from_db
+from routers.directory.tinkoff.errors import get_last_unreceived_error
+from routers.directory.tinkoff.temporary_codes import set_temporary_code
+from routers.directory.tinkoff.notifications import get_card_nums_for_transfer_notifications
+from routers.directory.tinkoff.scheduler import get_import_times
+from routers.directory.tinkoff.categories import (
     get_categories_from_db,
     save_keyword_to_db,
-    remove_keyword_from_category,
-    get_last_unreceived_error,
-    set_temporary_code,
-    get_card_nums_for_transfer_notifications
+    remove_keyword_from_category
 )
 from routers.directory.bot import get_card_number_by_chat_id
+
+from utils.bot import check_miniapp_token
 
 from utils.tinkoff.expenses_utils import load_expenses_from_site
 from utils.tinkoff.time_utils import get_period_range
@@ -71,9 +75,10 @@ async def get_expenses(
     Универсальный эндпоинт для получения расходов. Работает и для бота, и для основного интерфейса.
     """
     card_num = None
+    chat_id = None
     if token:
         # Запрос от бота
-        card_num = await process_bot_request(token, db)
+        card_num, chat_id = await process_bot_request(token, db)
     else:
         # Запрос от обычного пользователя
         if isinstance(user, RedirectResponse):
@@ -102,7 +107,10 @@ async def get_expenses(
                                     time_zone, 
                                     "Необходима авторизация")
 
-    return generate_expense_response(request, expenses_data, token is not None, card_num in get_card_nums_for_transfer_notifications(db))
+    return generate_expense_response(request, expenses_data, 
+                                     token is not None, 
+                                     str(chat_id) in get_card_nums_for_transfer_notifications(db),
+                                     get_import_times(db))
 
 
 async def process_bot_request(token: str, db: Session) -> str:
@@ -118,7 +126,7 @@ async def process_bot_request(token: str, db: Session) -> str:
         card_num = get_card_number_by_chat_id(db, chat_id)
         if not card_num:
             raise HTTPException(status_code=403, detail="Пользователь не найден.")
-        return card_num
+        return card_num, chat_id
     except ValueError as e:
         raise HTTPException(status_code=403, detail=str(e))
 
@@ -132,7 +140,13 @@ async def get_expenses_from_tinkoff(start: int, end: int, db: Session, time_zone
         raise HTTPException(status_code=403, detail="Необходима авторизация.")
 
 
-def generate_expense_response(request: Request, expenses_data: dict, is_bot: bool, can_view_all_expenses: bool):
+def generate_expense_response(
+        request: Request, 
+        expenses_data: dict, 
+        is_bot: bool, 
+        can_view_all_expenses: bool, 
+        import_times: dict
+    ):
     """Формирует JSON или HTML-ответ."""
     if not expenses_data["expenses"]:
         error_message = "Данные за выбранный период отсутствуют."
@@ -143,7 +157,9 @@ def generate_expense_response(request: Request, expenses_data: dict, is_bot: boo
                                                                                 "error_message": error_message, 
                                                                                 "expenses": [], 
                                                                                 "is_miniapp": is_bot,
-                                                                                "can_view_all_expenses": can_view_all_expenses
+                                                                                "can_view_all_expenses": can_view_all_expenses,
+                                                                                "first_import_time": import_times["expenses"],
+                                                                                "second_import_time": import_times["full"],
                                                                                 })
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -153,7 +169,9 @@ def generate_expense_response(request: Request, expenses_data: dict, is_bot: boo
                                                                             "request": request, 
                                                                             "expenses": json.dumps(expenses_data), 
                                                                             "is_miniapp": is_bot,
-                                                                            "can_view_all_expenses": can_view_all_expenses
+                                                                            "can_view_all_expenses": can_view_all_expenses,
+                                                                            "first_import_time": import_times["expenses"],
+                                                                            "second_import_time": import_times["full"],
                                                                             })
 
 

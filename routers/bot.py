@@ -1,23 +1,15 @@
-# bot.py
+# routes/bot.py
 
-import time
-import json
-
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+# Сторонние модули
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.templating import Jinja2Templates
-from fastapi.responses import JSONResponse
 
-from routers.directory.bot import check_user_and_store_tg_tmp_user, get_card_number_by_chat_id
+# Собственные модули
+from routers.directory.bot import check_user_and_store_tg_tmp_user
 from database import Session
 from auth import verify_bot_token
 
-from routers.directory.tinkoff_expenses import get_expenses_from_db
-
-from utils.tinkoff.time_utils import get_period_range
-
-from models import TokenizedUrlRequest, Users, TgTmpUsers
+from models import TokenizedUrlRequest
 
 
 router = APIRouter()
