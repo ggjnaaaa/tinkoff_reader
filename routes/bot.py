@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from fastapi.templating import Jinja2Templates
 
 # Собственные модули
-from routers.directory.bot import check_user_and_store_tg_tmp_user
+from routes.directory.bot import check_user_and_store_tg_tmp_user
 from database import Session
 from auth import verify_bot_token
 

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import RedirectResponse
 
 # Собственные модули
-from routers.directory.tinkoff.scheduler import set_export_time
+from routes.directory.tinkoff.scheduler import set_export_time
 
 from utils.tinkoff.scheduler_utils import update_scheduler
 

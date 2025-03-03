@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from threading import Thread
 
 # Собственные модули
-from routers import (
+from routes import (
     auth_tinkoff,
     general,
     start,

@@ -16,9 +16,9 @@ from utils.tinkoff.time_utils import (
 
 from models import Expense
 
-from routers.directory.tinkoff.utils import generate_period_message
-from routers.directory.tinkoff.categories import get_categories_with_keywords, get_category_from_description
-from routers.directory.tinkoff.notifications import get_card_nums_for_transfer_notifications
+from routes.directory.tinkoff.utils import generate_period_message
+from routes.directory.tinkoff.categories import get_categories_with_keywords, get_category_from_description
+from routes.directory.tinkoff.notifications import get_card_nums_for_transfer_notifications
 
 
 def filter_by_date(query, unix_range_start, unix_range_end):

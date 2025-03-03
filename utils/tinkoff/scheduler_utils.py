@@ -9,7 +9,7 @@ import logging
 # Собственные модули
 from utils.tinkoff.expense_scheduler import ExpenseScheduler
 
-from routers.directory.tinkoff.scheduler import get_import_times
+from routes.directory.tinkoff.scheduler import get_import_times
 
 from database import Session
 

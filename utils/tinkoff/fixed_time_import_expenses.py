@@ -14,11 +14,11 @@ import config
 
 from database import Session
 
-from routers.directory.tinkoff.errors import set_last_error
-from routers.directory.tinkoff.expenses import save_expenses_to_db
-from routers.directory.tinkoff.categories import get_categories_with_keywords
-from routers.directory.tinkoff.scheduler import get_import_times
-from routers.directory.tinkoff.temporary_codes import get_temporary_code
+from routes.directory.tinkoff.errors import set_last_error
+from routes.directory.tinkoff.expenses import save_expenses_to_db
+from routes.directory.tinkoff.categories import get_categories_with_keywords
+from routes.directory.tinkoff.scheduler import get_import_times
+from routes.directory.tinkoff.temporary_codes import get_temporary_code
 
 from utils.tinkoff.time_utils import get_period_range
 from utils.tinkoff.browser_manager import BrowserManager

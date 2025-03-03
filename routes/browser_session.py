@@ -12,7 +12,7 @@ from typing import Optional
 # Собственные модули
 import config as config
 
-from routers.auth_tinkoff import check_for_browser, get_browser
+from routes.auth_tinkoff import check_for_browser, get_browser
 
 from dependencies import get_authenticated_user
 

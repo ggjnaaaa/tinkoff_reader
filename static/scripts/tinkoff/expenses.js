@@ -188,7 +188,6 @@ async function saveKeywords() {
 
         const data = await response.json();
         showNotificationToast(data.message);
-        // Перезагрузка или обновление страницы, если нужно
     } catch (error) {
         console.error('Ошибка при сохранении ключевых слов:', error);
     } finally {

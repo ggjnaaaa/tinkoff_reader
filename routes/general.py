@@ -4,7 +4,7 @@
 from fastapi import APIRouter
 
 # Собственные модули
-from routers.auth_tinkoff import get_browser
+from routes.auth_tinkoff import get_browser
 
 
 router = APIRouter()

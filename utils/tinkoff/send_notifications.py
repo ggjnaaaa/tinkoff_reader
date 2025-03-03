@@ -8,8 +8,8 @@ import config
 
 from models import Users, TgTmpUsers
 
-from routers.directory.tinkoff.expenses import get_expenses_from_db
-from routers.directory.tinkoff.notifications import get_chat_ids_for_error_notifications, get_chat_ids_for_transfer_notifications
+from routes.directory.tinkoff.expenses import get_expenses_from_db
+from routes.directory.tinkoff.notifications import get_chat_ids_for_error_notifications, get_chat_ids_for_transfer_notifications
 
 from utils.tinkoff.time_utils import get_period_range
 
