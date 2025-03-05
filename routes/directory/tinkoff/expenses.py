@@ -30,8 +30,11 @@ def filter_by_date(query, unix_range_start, unix_range_end):
 
 
 def filter_by_card_number(query, db, card_number, show_all_expenses):
+    transfer_notifications_users = get_card_nums_for_transfer_notifications(db)
+    is_card_number_in_transfer_users = card_number in transfer_notifications_users
+    show_all_expenses = show_all_expenses if is_card_number_in_transfer_users else False
+    
     if card_number and not show_all_expenses:
-        transfer_notifications_users = get_card_nums_for_transfer_notifications(db)
         if card_number in transfer_notifications_users:
             query = query.filter(
                 (Expense.card_number == "*" + card_number) | (Expense.card_number == "")
