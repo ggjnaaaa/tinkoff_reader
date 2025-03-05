@@ -188,6 +188,7 @@ async function saveKeywords() {
 
         const data = await response.json();
         showNotificationToast(data.message);
+        window.Telegram.WebApp.close();
     } catch (error) {
         console.error('Ошибка при сохранении ключевых слов:', error);
     } finally {
