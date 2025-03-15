@@ -13,6 +13,7 @@ import aiofiles
 from playwright.async_api import Page
 import pytz
 from fuzzywuzzy import fuzz
+import chardet
 
 # Собственные модули
 import config as config
@@ -24,7 +25,7 @@ from utils.tinkoff.browser_utils import (
     click_button
 )
 
-from routes.directory.tinkoff.categories import get_categories_with_keywords
+# from routes.directory.tinkoff.categories import get_categories_with_keywords
 from routes.directory.tinkoff.expenses import save_expenses_to_db
 
 from routes.auth_tinkoff import (
@@ -58,9 +59,8 @@ async def load_expenses_from_site(browser, unix_range_start, unix_range_end, db,
         file_path = await wait_for_new_download(start_time=start_time, timeout=20)
 
         # Обработка CSV и сохранение в БД
-        categories_dict = get_categories_with_keywords(db)
-        expenses = await get_json_expenses_from_csv(file_path, categories_dict, time_zone)
-        save_expenses_to_db(db, expenses["expenses"], time_zone)
+        # categories_dict = get_categories_with_keywords(db)
+        expenses = await get_json_expenses_from_csv(db, file_path, time_zone)
 
         return {
             "message": "Данные были успешно загружены с сайта.",
@@ -133,7 +133,7 @@ async def check_expenses_page(browser: BrowserManager):
             raise HTTPException(status_code=307, detail="Не удалось открыть страницу расходов. Перенаправление.")
 
 
-async def get_json_expenses_from_csv(file_path, categories_dict, target_timezone):
+async def get_json_expenses_from_csv(db, file_path, target_timezone):
     """
     Обрабатывает CSV в JSON по заданному пути к файлу.
     """
@@ -143,8 +143,25 @@ async def get_json_expenses_from_csv(file_path, categories_dict, target_timezone
     await asyncio.sleep(0.5)
 
     # Чтение CSV-файла
-    async with aiofiles.open(file_path, mode='r', encoding='windows-1251') as file:
-        reader = csv.DictReader(await file.readlines(), delimiter=';')
+    async with aiofiles.open(file_path, mode='rb') as file:
+        content = await file.read()
+            
+        # Автоматическое определение кодировки
+        detected_encoding = chardet.detect(content)['encoding']
+        decoded_content = content.decode(detected_encoding or 'utf-8', errors='replace')
+
+        # Разделяем содержимое на строки
+        lines = decoded_content.splitlines()
+        
+        # Читаем заголовки из первой строки
+        headers = [header.strip('"') for header in lines[0].strip().split(';')]
+        
+        reader = csv.DictReader(
+            lines[1:],
+            delimiter=';',
+            fieldnames=headers,
+            quotechar='"'
+        )
         
         transactions = []
         for row in reader:
@@ -166,8 +183,8 @@ async def get_json_expenses_from_csv(file_path, categories_dict, target_timezone
             # Конвертация времени
             msk_time = datetime.strptime(row["Дата операции"], "%d.%m.%Y %H:%M:%S")
             msk_timezone = pytz.timezone("Europe/Moscow")
-            target_timezone = pytz.timezone(target_timezone) if isinstance(target_timezone, str) else target_timezone
-            utc_time = msk_timezone.localize(msk_time).astimezone(target_timezone)
+            timezone = pytz.timezone(target_timezone) if isinstance(target_timezone, str) else target_timezone
+            utc_time = msk_timezone.localize(msk_time).astimezone(timezone)
 
             transactions.append({
                 "datetime": utc_time.replace(tzinfo=None),
@@ -204,10 +221,10 @@ async def get_json_expenses_from_csv(file_path, categories_dict, target_timezone
                 current["category"] = None
                 total_expense += abs(current["amount"])
                 # Определение категории по названию
-                for category_title, data in categories_dict.items():
-                    if any(keyword.lower() in current["description"].lower() for keyword in data["keywords"]):
-                        current["category"] = category_title  # Сохраняем название категории
-                        break
+                # for category_title, data in categories_dict.items():
+                #     if any(keyword.lower() in current["description"].lower() for keyword in data["keywords"]):
+                #         current["category"] = category_title  # Сохраняем название категории
+                #         break
 
                 categorized_expenses.append({
                     "date_time": current["datetime"].strftime("%d.%m.%Y %H:%M:%S"),
@@ -215,7 +232,7 @@ async def get_json_expenses_from_csv(file_path, categories_dict, target_timezone
                     "transaction_type": "расход",
                     "amount": abs(current["amount"]),
                     "description": current["description"],
-                    "category": current["category"]
+                    "category": "Не указана"
                 })
             i += 1
 
@@ -224,10 +241,10 @@ async def get_json_expenses_from_csv(file_path, categories_dict, target_timezone
             last_transaction = transactions[i]
             if last_transaction["amount"] < 0:
                 total_expense += abs(last_transaction["amount"])
-                for category_title, data in categories_dict.items():
-                    if any(keyword.lower() in last_transaction["description"].lower() for keyword in data["keywords"]):
-                        last_transaction["category"] = data["id"]
-                        break
+                # for category_title, data in categories_dict.items():
+                #     if any(keyword.lower() in last_transaction["description"].lower() for keyword in data["keywords"]):
+                #         last_transaction["category"] = data["id"]
+                #         break
 
                 categorized_expenses.append({
                     "date_time": last_transaction["datetime"].strftime("%d.%m.%Y %H:%M:%S"),
@@ -235,15 +252,17 @@ async def get_json_expenses_from_csv(file_path, categories_dict, target_timezone
                     "transaction_type": "расход",
                     "amount": abs(last_transaction["amount"]),
                     "description": last_transaction["description"],
-                    "category": last_transaction["category"]
+                    "category": "Не указана"
                 })
         
         unique_cards = list({categorized_expense["card_number"] for categorized_expense in categorized_expenses})
 
     os.remove(file_path)
 
+    saved_expenses = save_expenses_to_db(db, categorized_expenses, target_timezone)
+
     return {
         "total_expense": total_expense,
         "cards": unique_cards,
-        "expenses": categorized_expenses
+        "expenses": saved_expenses
     }

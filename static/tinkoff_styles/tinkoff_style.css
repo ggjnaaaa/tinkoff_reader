@@ -34,3 +34,17 @@ p {
 input {
     padding: 5px;
 }
+
+select {
+    padding: 5px;
+    border-radius: 5px;
+    background-color: white;
+    border-color: gray;
+}
+
+.filtration-container {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: center;
+}

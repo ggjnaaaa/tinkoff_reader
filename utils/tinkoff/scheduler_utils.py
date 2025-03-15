@@ -3,9 +3,6 @@
 # Стандартные модули Python
 import logging
 
-# Сторонние модули
-
-
 # Собственные модули
 from utils.tinkoff.expense_scheduler import ExpenseScheduler
 

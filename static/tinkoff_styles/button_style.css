@@ -9,6 +9,7 @@ input-control::part(button) {
     border-radius: 5px;
     margin-top: 15px;
     background-color: #39D488;
+    color: black;
 }
 
 button:hover, 

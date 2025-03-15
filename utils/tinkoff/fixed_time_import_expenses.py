@@ -16,7 +16,7 @@ from database import Session
 
 from routes.directory.tinkoff.errors import set_last_error
 from routes.directory.tinkoff.expenses import save_expenses_to_db
-from routes.directory.tinkoff.categories import get_categories_with_keywords
+# from routes.directory.tinkoff.categories import get_categories_with_keywords
 from routes.directory.tinkoff.scheduler import get_import_times
 from routes.directory.tinkoff.temporary_codes import get_temporary_code
 
@@ -191,9 +191,8 @@ async def load_expenses_from_site(browser, unix_range_start, unix_range_end, db,
         file_path = await wait_for_new_download(start_time=start_time, timeout=20)
 
         # Обработка CSV и сохранение в БД
-        categories_dict = get_categories_with_keywords(db)
-        expenses = await get_json_expenses_from_csv(file_path, categories_dict, time_zone)
-        save_expenses_to_db(db, expenses["expenses"], time_zone)
+        # categories_dict = get_categories_with_keywords(db)
+        expenses = await get_json_expenses_from_csv(db, file_path, time_zone)
 
         return expenses
     except:

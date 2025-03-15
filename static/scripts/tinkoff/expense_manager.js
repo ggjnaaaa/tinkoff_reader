@@ -27,29 +27,6 @@ class ExpenseManager {
         this.render();
     }
 
-    // Метод для обновления категории статьи
-    updateCategory(description, category) {
-        // Обновляем категорию в оригинальном списке расходов
-        this.originalExpenses.forEach(expense => {
-            if (expense.description === description) {
-                expense.category = category;
-            }
-        });
-    
-        this.filteredExpenses.forEach(expense => {
-            if (expense.description === description) {
-                expense.category = category;
-            }
-        });
-    
-        // Найдем строку таблицы по описанию и обновим только ее
-        const row = $(`#expensesTable .category-select[data-description="${description}"]`).closest('tr');
-        const select = row.find('.category-select');
-    
-        // Обновим `<select>` и его значение без полного рендеринга
-        select.val(category).trigger('change.select2');
-    }
-
     calculateTotalExpense() {
         const total = this.filteredExpenses.reduce((total, expense) => {
             return total + parseFloat(expense.amount); // Преобразуем строку в число
@@ -129,71 +106,185 @@ class ExpenseManager {
         const expensesToRender = this.filteredExpenses.slice(startIndex, endIndex);
 
         expensesToRender.forEach(expense => {
-            const options = this.categories.map(cat => {
-                const selected = expense.category === cat ? 'selected' : '';
-                return `<option value="${cat}" ${selected}>${cat}</option>`;
-            }).join('');
-
             let row;
+            const selectedCategory = this.categories.find(cat => cat.category_name === expense.category);
+            const categoryColor = selectedCategory ? selectedCategory.color : 'transparent'; 
+            const categoryId = selectedCategory ? selectedCategory.id : null; 
+
             if (this.isMiniApp) {
-                row = `<tr>
+                row = $(`<tr>
                             <td>${expense.amount} ₽</td>
                             <td>${expense.description}</td>
                             <td>
-                                <select class="category-select" 
-                                        data-description="${expense.description}">
-                                    <option></option> <!-- Пустая опция для "без категории" -->
-                                    ${options}
-                                </select>
+                                <div class="custom-select" data-id="${expense.id}">
+                                    <div class="selected">
+                                        <div style="background-color: ${categoryColor}" data-category-id="${categoryId}" class="category-text circle-selection">${expense.category}</div>
+                                        <div class="icons">
+                                            <div class="close-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 100 100">
+                                                    <path d="M10 10L90 90M90 10L10 90" stroke="black" stroke-width="20"/>
+                                                </svg>
+                                            </div>
+                                            <div class="dropdown-icon">▼</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
-                        </tr>`;
+                        </tr>`);
             }
             else {
-                row = `<tr>
+                row = $(`<tr>
                             <td>${expense.date_time}</td>
                             <td>${expense.card_number}</td>
                             <td>${expense.amount} ₽</td>
                             <td>${expense.description}</td>
                             <td>
-                                <select class="category-select" 
-                                        data-description="${expense.description}">
-                                    <option></option> <!-- Пустая опция для "без категории" -->
-                                    ${options}
-                                </select>
+                                <div class="custom-select" data-id="${expense.id}">
+                                    <div class="selected">
+                                        <div style="background-color: ${categoryColor}" data-category-id="${categoryId}" class="category-text circle-selection">${expense.category}</div>
+                                        <div class="icons">
+                                            <div class="close-icon">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="9" height="9" viewBox="0 0 100 100">
+                                                    <path d="M10 10L90 90M90 10L10 90" stroke="black" stroke-width="20"/>
+                                                </svg>
+                                            </div>
+                                            <div class="dropdown-icon">▼</div>
+                                        </div>
+                                    </div>
+                                </div>
                             </td>
-                        </tr>`;
+                        </tr>`);
             }
+
+            row.find('.custom-select').click((e) => {
+                const target = $(e.target).closest('.custom-select');
+                const existingWrapper = $('.select-wrapper');
+
+                if (existingWrapper.length && existingWrapper.is(':visible')) {
+                    existingWrapper.remove();
+                    return;
+                }
+                this.showDropdown(target);
+            });
+
+            row.find('.close-icon').click(() => {
+                const categoryTextElement = row.find('.category-text');
+                
+                // Очищаем текст и меняем на "Не указана"
+                categoryTextElement.text('Не указана');
+                categoryTextElement.attr('data-category-id', null);
+            
+                // Также можем изменить цвет на прозрачный
+                categoryTextElement.css('background-color', 'transparent');
+            });
             
             tableBody.append(row);
         });
-    
-        $('.category-select').select2({
-            placeholder: "Выберите категорию",
-            allowClear: true 
-        });
-    
+ 
         // Отображаем общую сумму
         const totalExpense = this.calculateTotalExpense();
         $('#totalExpenses').text(`Общая сумма расходов: ${totalExpense} ₽`);
 
         this.renderPaginationControls();
+    }
+
+    showDropdown(target) {
+        // Удаляем старый dropdown
+        $('.custom-dropdown').remove();
     
-        // Переназначение обработчика для обновления категории
-        this.attachCategoryChangeEvent();
-    }
+        // Создаём новый dropdown
+        const wrapper = $('<div class="select-wrapper"></div>');
+        const dropdown = $('<div class="custom-dropdown"></div>');
+        this.categories.forEach(category => {
+            const option = $(`<div>
+                                <div class="circle-selection" style="background-color: ${category.color || 'transparent'}">
+                                    ${category.category_name}
+                                </div>
+                            </div>`);
+            option.click(() => {
+                if (this.isMiniApp) {
+                    $('#footer-save').show();
+                }
 
-    // Привязка события к изменению категории
-    attachCategoryChangeEvent() {
-        $('#expensesTable').on('change', '.category-select', (event) => {
-            const selectedCategory = $(event.target).val();
-            const description = $(event.target).data('description');
-            this.updateCategory(description, selectedCategory);
-
-            if (this.isMiniApp) {
-                $('#footer-save').show();
-            }
+                // Обновляем текст и ID в элементе .category-text
+                const selectedCategory = target.find('.category-text');
+                selectedCategory.text(category.category_name);
+                selectedCategory.attr('data-category-id', category.id);
+                const circleSelection = target.find('.circle-selection');
+                circleSelection.css('background-color', category.color || 'transparent');
+                // Закрываем dropdown
+                wrapper.remove();
+            });
+            dropdown.append(option);
         });
+
+        wrapper.append(dropdown);
+    
+        // Добавляем dropdown в конец body
+        $('body').append(wrapper);
+    
+        // Вычисляем координаты
+        const offset = $(target).offset();
+        const targetHeight = $(target).outerHeight();
+        const dropdownHeight = dropdown.outerHeight();
+        const windowHeight = $(window).height();
+        const scrollTop = $(window).scrollTop(); // Получаем текущую прокрутку страницы
+        
+        // Вычисляем нижний угол элемента с учетом прокрутки
+        const elementBottomPosition = offset.top + targetHeight - scrollTop;
+
+        // Вычисляем доступное место ниже и выше
+        const availableSpaceBelow = windowHeight - elementBottomPosition; // Место под элементом
+        const availableSpaceAbove = offset.top - scrollTop; // Место выше, до верхней границы окна
+
+        // Определяем высоту dropdown: если места достаточно, то по высоте контента, иначе ограничиваем до доступного места
+        let dropdownMaxHeight = dropdownHeight; 
+
+        if (availableSpaceBelow < 100) {
+            // Если снизу мало места и сверху достаточно, показываем вверх
+            let dropdownTopPosition = offset.top - scrollTop - dropdownHeight;
+            if (dropdownTopPosition < 0) dropdownTopPosition = 0;
+
+            if (availableSpaceAbove < dropdownHeight) {
+                dropdownMaxHeight = availableSpaceAbove; // Ограничиваем до доступного места снизу
+            }
+            dropdown.css('max-height', dropdownMaxHeight);
+
+            wrapper.css({
+                position: 'fixed',
+                top: dropdownTopPosition, // Показываем dropdown либо вниз, либо вверх
+                left: offset.left,
+                minWidth: $(target).outerWidth(),
+                // height: dropdownHeight
+            });
+        }
+        else {
+            let dropdownTopPosition = offset.top - scrollTop + targetHeight; // по умолчанию вниз
+
+            if (availableSpaceBelow < dropdownHeight) {
+                dropdownMaxHeight = availableSpaceBelow - 10; // Ограничиваем до доступного места снизу
+            }
+            dropdown.css('max-height', dropdownMaxHeight);
+
+            wrapper.css({
+                position: 'fixed',
+                top: dropdownTopPosition, // Показываем dropdown либо вниз, либо вверх
+                left: offset.left,
+                minWidth: $(target).outerWidth(),
+            });
+        }
+
+        // Закрытие при клике вне (с задержкой)
+        setTimeout(() => {
+            $(document).on('click.hideDropdown', (e) => {
+                if (!wrapper.is(e.target) && wrapper.has(e.target).length === 0) {
+                    wrapper.remove();
+                    $(document).off('click.hideDropdown');
+                }
+            });
+        }, 0);
     }
+    
 }
 
 // Добавляем обработчики на элементы управления

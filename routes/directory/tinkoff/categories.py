@@ -1,20 +1,22 @@
 # routes/directory/tinkoff/categories.py
 
 # Сторонние модули
+from fastapi import HTTPException
+from typing import Optional
+
 from sqlalchemy.orm import Session
 from sqlalchemy.future import select
-from sqlalchemy.exc import IntegrityError
 
 # Собственные модули
-from models import CategoryExpenses, CategoryKeyword
+from models import CategoryExpenses, CategoryKeyword, Expense
 
 
 def get_categories_from_db(db):
     """
-    Получение категорий из базы данных (без ключевых слов).
+    Получение категорий из базы данных (с цветом).
     """
-    # Запрашиваем только категории
-    query = select(CategoryExpenses)
+    # Запрашиваем категории с цветом
+    query = select(CategoryExpenses).order_by(CategoryExpenses.id)
     result = db.execute(query)
     
     # Извлекаем категории из результата
@@ -24,7 +26,8 @@ def get_categories_from_db(db):
     categories_list = [
         {
             "id": category.id,
-            "category_name": category.title
+            "category_name": category.title,
+            "color": category.color  # Добавляем поле для цвета
         }
         for category in categories
     ]
@@ -32,84 +35,27 @@ def get_categories_from_db(db):
     return categories_list
 
 
-def get_categories_with_keywords(db):
+def update_expense_category(db: Session, expense_id: int, category_id: Optional[int]):
     """
-    Получение категорий с ключевыми словами из базы данных.
+    Обновляет категорию у расхода или очищает её.
+    :param db: Сессия БД
+    :param expense_id: ID расхода
+    :param category_id: ID категории (или None для очистки)
     """
-    # Запрашиваем категории и ключевые слова
-    query = (
-        select(
-            CategoryExpenses.id,  # ID категории
-            CategoryExpenses.title,  # Название категории
-            CategoryKeyword.keyword  # Ключевое слово
-        )
-        .join(
-            CategoryKeyword,
-            CategoryKeyword.category_id == CategoryExpenses.id,
-            isouter=True  # Левое соединение, чтобы захватить категории без ключевых слов
-        )
-    )
-    result = db.execute(query)
-    
-    # Обрабатываем результат
-    categories = {}
-    for category_id, category_title, keyword in result:
-        if category_title not in categories:
-            categories[category_title] = {
-                "id": category_id,
-                "keywords": []
-            }
-        if keyword:  # Добавляем только существующие ключевые слова
-            categories[category_title]["keywords"].append(keyword)
-    
-    return categories
+    expense = db.query(Expense).filter(Expense.id == expense_id).first()
+    if not expense:
+        raise HTTPException(status_code=404, detail=f"Расход с ID {expense_id} не найден")
 
-
-def get_category_from_description(categories_dict, current_expense):
-    """
-    Получение категории по описанию.
-    """
-    for category_title, data in categories_dict.items():
-        if any(keyword.lower() in current_expense.description.lower() for keyword in data["keywords"]):
-            return category_title
+    category = None
+    if category_id == 'null' or category_id == '':
+        category_id = None
         
-
-def save_keyword_to_db(db: Session, description: str, category_id: int):
-    """
-    Сохранение ключевых слов в бд.
-    """
-    # Проверяем, если ключевое слово уже существует в таблице, независимо от категории
-    existing_keyword = db.query(CategoryKeyword).filter(
-        CategoryKeyword.keyword == description
-    ).first()
+    if category_id:
+        category = db.query(CategoryExpenses).filter(CategoryExpenses.id == category_id).first()
+        if not category:
+            raise HTTPException(status_code=422, detail=f"Категория с ID {category_id} не найдена")
     
-    if not existing_keyword:
-        # Создаем новую запись для ключевого слова
-        new_keyword = CategoryKeyword(
-            keyword=description,
-            category_id=category_id
-        )
-        try:
-            db.add(new_keyword)
-            db.commit()  # Сохраняем изменения в базе данных
-            db.refresh(new_keyword)  # Обновляем объект для получения ID, если нужно
-            print(f"Ключевое слово '{description}' добавлено для категории с ID {category_id}")
-        except IntegrityError:
-            db.rollback()  # Откатить транзакцию в случае ошибки
-            print(f"Ключевое слово '{description}' уже существует и не может быть добавлено.")
-    else:
-        # Если слово уже существует, обновляем категорию
-        existing_keyword.category_id = category_id
-        db.commit()
-        print(f"Ключевое слово '{description}' обновлено для новой категории с ID {category_id}")
-    
-    return
+    print(f"Для расхода {expense.description} с id {expense.id} изменена категория на {category.title if category else None}")
 
-
-def remove_keyword_from_category(db: Session, description: str):
-    """
-    Удаление ключевого слова из всех категорий.
-    """
-    db.query(CategoryKeyword).filter(CategoryKeyword.keyword == description).delete(synchronize_session=False)
+    expense.category_id = category_id  # Устанавливаем или очищаем категорию
     db.commit()
-    print(f"Ключевое слово '{description}' удалено из всех категорий.")

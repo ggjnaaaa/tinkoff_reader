@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кастомный селектор</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        .custom-select {
+            position: relative;
+            width: 200px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 8px;
+            background: white;
+        }
+
+        .custom-select .selected {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .custom-dropdown {
+            position: absolute;
+            width: 100%;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            display: none;
+            top: 100%;
+            left: 0;
+            z-index: 10;
+        }
+
+        .custom-dropdown div {
+            padding: 8px;
+            cursor: pointer;
+        }
+
+        .custom-dropdown div:hover {
+            background: #f0f0f0;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="expensesTable"></div>
+
+    <script>
+        const categories = [
+                            {category: "Еда", color: '#DBD3AD'}, 
+                            {category: "Транспорт", color: '#E0607E'}, 
+                            {category: "Развлечения", color: '#D36060'}, 
+                            {category: "Здоровье", color: '#C2714F'}, 
+                            {category: "Прочее", color: '#F6C5AF'}
+                        ];
+
+        const expenses = [
+            { id: 1, description: "Пицца", category: "Еда" },
+            { id: 2, description: "Метро", category: "Транспорт" },
+            { id: 3, description: "Кино", category: "Развлечения" },
+        ];
+
+        function createDropdownTemplate() {
+            const dropdown = $('<div class="custom-dropdown"></div>');
+            
+            categories.forEach(category => {
+                const option = $(`
+                    <div>
+                        <div style="display: inline-block; background-color: ${category.color}; 
+                            border-radius: 5px; padding: 10px">
+                            ${category.category}
+                        </div>
+                    </div>
+                `);
+                dropdown.append(option);
+            });
+
+            return dropdown;
+        }
+
+        function renderTable() {
+            const tableContainer = $('#expensesTable');
+            tableContainer.empty();
+
+            const dropdownTemplate = createDropdownTemplate(); // Создаём один раз
+
+            expenses.forEach(expense => {
+                const row = $(`
+                    <div class="expense-row">
+                        <span>${expense.description}</span>
+                        <div class="custom-select" data-id="${expense.id}">
+                            <div class="selected">${expense.category} ▼</div>
+                        </div>
+                    </div>
+                `);
+
+                // Клонируем шаблон, чтобы каждый селектор имел свой независимый dropdown
+                const dropdownClone = dropdownTemplate.clone();
+                
+                dropdownClone.find('div').click(function () {
+                    const selectedCategory = $(this).text().trim();
+                    updateCategory(expense.id, selectedCategory);
+                });
+
+                row.find('.custom-select').append(dropdownClone);
+
+                row.find('.selected').click(() => {
+                    $('.custom-dropdown').not(dropdownClone).hide(); // Закрываем другие
+                    dropdownClone.toggle();
+                });
+
+                tableContainer.append(row);
+            });
+        }
+
+
+        function updateCategory(expenseId, newCategory) {
+            expenses.forEach(exp => {
+                if (exp.id === expenseId) exp.category = newCategory;
+            });
+            renderTable();
+        }
+
+        $(document).click(e => {
+            if (!$(e.target).closest('.custom-select').length) {
+                $('.custom-dropdown').hide();
+            }
+        });
+
+        renderTable();
+    </script>
+
+</body>
+</html>

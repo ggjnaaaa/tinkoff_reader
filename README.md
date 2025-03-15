@@ -84,6 +84,48 @@ CREATE TABLE tinkoff_schedule (
 
 ## История изменений (начиная с новых)
 
+### 15.03.25
+Изменено:
+1. Сделан кастомный селектор, учитывающий цвета категорий:
+<p align="center">
+  <img src="./result_imgs/selector/new_selector_color" alt="Новый селектор с цветами" width="150"/>
+  <br>
+  <i>Новый селектор с цветами. Идет вниз с ограничением</i>
+</p>
+
+<p align="center">
+  <img src="./result_imgs/selector/new_selector_color_selected" alt="Новый селектор с цветами" width="150"/>
+  <br>
+  <i>Новый селектор с цветами. Идет вверх без ограничений</i>
+</p>
+
+2. Если у категорий нет цветов, то будут отображаться простым белым списком:
+<p align="center">
+  <img src="./result_imgs/selector/new_selector_no_color" alt="Новый селектор без цветов" width="150"/>
+  <br>
+  <i>Новый селектор без цветов</i>
+</p>
+
+<p align="center">
+  <img src="./result_imgs/selector/new_selector_no_color_selected" alt="Новый селектор без цветов" width="150"/>
+  <br>
+  <i>Новый селектор без цветов. Выделенный</i>
+</p>
+
+Чтобы обновить бд под цвета (логики изменения цвета пока нет):
+```
+ALTER TABLE category_expenses ADD COLUMN color TEXT;
+```
+
+3. Обновлена логика работы с категориями, теперь категория добавляется не по описанию
+расхода, а по id (теперь одна категория не будет автоматически привязываться к расходам
+с одинаковым описанием). Чтобы обновить бд под новую логику:
+```
+ALTER TABLE expenses ADD COLUMN category_id INTEGER REFERENCES category_expenses(id);
+DROP TABLE category_expenses_keywords;
+```
+
+
 ### 05.03.25
 Добавлено:  
 Миниапп закрывается после сохранения изменений.

@@ -1,0 +1,87 @@
+.select-wrapper {
+    background: white;
+    border: 1px solid #ccc;
+
+    overflow-y: auto;
+    position: absolute;
+    z-index: 9999;
+    box-sizing: border-box;
+
+    border-radius: 5px;
+    padding-top: 5px;
+
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.473);
+}
+
+.custom-dropdown {
+    /* display: none; По умолчанию скрыт */
+    width: 100%;
+    max-height: calc(100vh - 20px); /* Обеспечивает растяжение до конца окна */
+    overflow-y: auto;
+}
+
+.custom-select {
+    position: relative;
+    width: 13rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 8px;
+    background: white;
+    display: inline-flex;
+    align-items: center;
+}
+.custom-select .selected {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.custom-dropdown>div {
+    padding: 3px;
+    cursor: pointer;
+}
+
+.custom-dropdown>div:hover {
+    background: #97979779;
+}
+
+.circle-selection {
+    display: inline-block;
+    border-radius: 5px; 
+    padding: 2px 5px;
+    margin-left: 5px;
+}
+
+.icons {
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Расстояние между крестиком и стрелочкой */
+    right: 14px;
+}
+
+.close-icon {
+    right: 19px; 
+    cursor: pointer;
+    font-weight: bold;
+    position: absolute;
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.close-icon:hover {
+    background-color: #97979779;
+}
+
+.dropdown-icon {
+    right: 5px; /* Это автоматически отодвинет стрелочку к правому краю */
+    cursor: pointer;
+    position: absolute;
+}

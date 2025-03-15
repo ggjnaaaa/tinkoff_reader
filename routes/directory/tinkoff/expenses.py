@@ -17,7 +17,7 @@ from utils.tinkoff.time_utils import (
 from models import Expense
 
 from routes.directory.tinkoff.utils import generate_period_message
-from routes.directory.tinkoff.categories import get_categories_with_keywords, get_category_from_description
+from routes.directory.tinkoff.categories import get_categories_from_db
 from routes.directory.tinkoff.notifications import get_card_nums_for_transfer_notifications
 
 
@@ -62,12 +62,14 @@ def generate_period_message_for_expenses(expenses, unix_range_start, unix_range_
 
 
 def format_expenses_response(expenses, categories_dict, timezone_str, card_number):
+    categories_map = {category["id"]: category["category_name"] for category in categories_dict}
+
     expenses_list = [
         {
             "id": expense.id,
             "amount": float(abs(expense.amount)),
             "description": expense.description,
-            "category": get_category_from_description(categories_dict, expense) or "Не указана"
+            "category": categories_map.get(expense.category_id) or "Не указана"
         }
         for expense in expenses
     ]
@@ -113,7 +115,7 @@ def get_expenses_from_db(
     # Генерация сообщения о периоде
     period_message = generate_period_message_for_expenses(expenses, unix_range_start, unix_range_end, card_number)
     
-    categories_dict = get_categories_with_keywords(db)
+    categories_dict = get_categories_from_db(db)
     
     # Формирование списка расходов
     expenses_list = format_expenses_response(expenses, categories_dict, timezone_str, card_number)
@@ -132,8 +134,10 @@ def get_expenses_from_db(
 
 def save_expenses_to_db(db, expenses, time_zone):
     """
-    Сохранение расходов в бд.
+    Сохранение расходов в БД и возврат списка сохранённых расходов с их ID.
     """
+    saved_expenses = []
+    
     for expense in expenses:
         # Перевод времени в Unix-формат
         timestamp = get_unix_time_ms_from_string(expense["date_time"], time_zone)
@@ -160,6 +164,31 @@ def save_expenses_to_db(db, expenses, time_zone):
                 description=expense["description"],
             )
             db.add(new_expense)
+            db.flush()  # Получаем ID без коммита
+
+            # Добавляем в список
+            saved_expenses.append({
+                "id": new_expense.id,
+                "date_time": expense["date_time"],
+                "card_number": expense["card_number"],
+                "transaction_type": "расход",
+                "amount": expense["amount"],
+                "description": expense["description"],
+                "category": expense.get("category", "Не указана"),
+            })
+        else:
+            # Если расход уже есть, добавляем его ID
+            saved_expenses.append({
+                "id": existing_expense.id,
+                "date_time": expense["date_time"],
+                "card_number": expense["card_number"],
+                "transaction_type": "расход",
+                "amount": expense["amount"],
+                "description": expense["description"],
+                "category": expense.get("category", "Не указана"),
+            })
     
-    # Сохраняем все изменения в базе данных
+    # Сохраняем изменения в БД
     db.commit()
+
+    return saved_expenses 

@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import Column, Integer, String, ForeignKey, Text, Boolean, TIMESTAMP, BigInteger, func, Time
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 Base = declarative_base()
@@ -21,8 +21,8 @@ class LoginResponse(BaseModel):
         use_enum_values = True
 
 class Keyword(BaseModel):
-    description: str
-    category_name: str
+    expense_id: str
+    category_id: Optional[str]
 
 class SaveKeywordsRequest(BaseModel):
     keywords: List[Keyword]
@@ -41,6 +41,9 @@ class CategoryExpenses(Base):
     __tablename__ = "category_expenses"
     id = Column(Integer, primary_key=True)
     title = Column(Text)
+    color = Column(Text)
+
+    expenses = relationship("Expense", back_populates="category")
 
 
 class CategoryKeyword(Base):
@@ -58,6 +61,9 @@ class Expense(Base):
     card_number = Column(Text)
     amount = Column(Integer)
     description = Column(Text)
+    category_id = Column(Integer, ForeignKey("category_expenses.id"), nullable=True)
+
+    category = relationship("CategoryExpenses", back_populates="expenses")
 
 
 class TemporaryCode(Base):
