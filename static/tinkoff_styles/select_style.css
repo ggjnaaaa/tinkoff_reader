@@ -14,9 +14,8 @@
 }
 
 .custom-dropdown {
-    /* display: none; По умолчанию скрыт */
     width: 100%;
-    max-height: calc(100vh - 20px); /* Обеспечивает растяжение до конца окна */
+    max-height: calc(100vh - 20px); 
     overflow-y: auto;
 }
 
@@ -56,7 +55,7 @@
 .icons {
     display: flex;
     align-items: center;
-    gap: 8px; /* Расстояние между крестиком и стрелочкой */
+    gap: 8px;
     right: 14px;
 }
 
@@ -81,7 +80,7 @@
 }
 
 .dropdown-icon {
-    right: 5px; /* Это автоматически отодвинет стрелочку к правому краю */
+    right: 5px;
     cursor: pointer;
     position: absolute;
 }

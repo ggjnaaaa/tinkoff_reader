@@ -34,20 +34,15 @@ CREATE TABLE IF NOT EXISTS expenses (
     timestamp BIGINT NOT NULL, -- Время в Unix-формате
     card_number VARCHAR(10), -- В формате "*1234"
     amount DECIMAL(10, 2) NOT NULL, -- Сумма операции
-    description TEXT
-);
-
--- Таблица "Ключевые слова" для хранения ID статьи и ключевых фраз
-CREATE TABLE IF NOT EXISTS category_expenses_keywords (
-    id SERIAL PRIMARY KEY,
-    category_id INTEGER NOT NULL REFERENCES category_expenses(id) ON DELETE CASCADE,
-    keyword VARCHAR(255) NOT NULL UNIQUE -- Ключевые слова должны быть уникальными по всей таблице
+    description TEXT,
+    category_id INTEGER REFERENCES category_expenses(id)
 );
 
 -- Таблица "Категории" с ID и названием
 CREATE TABLE IF NOT EXISTS category_expenses (
     id SERIAL PRIMARY KEY,
-    title TEXT NOT NULL
+    title TEXT NOT NULL,
+    color TEXT
 );
 
 -- Таблица "Временный код"

@@ -83,9 +83,6 @@ async def get_expenses(
         if isinstance(user, RedirectResponse):
             pass
             # return user  # Если пользователь не аутентифицирован
-    
-    rangeStart, rangeEnd = None, None
-    period = "3month"
 
     # Преобразуем диапазон в Unix-время
     unix_range_start, unix_range_end = get_period_range(

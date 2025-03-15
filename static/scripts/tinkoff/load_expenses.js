@@ -17,7 +17,6 @@ async function loadExpenses(data) {
         }
     });
     
-
     // Отображение уведомления
     showNotificationToast(data.message);
 

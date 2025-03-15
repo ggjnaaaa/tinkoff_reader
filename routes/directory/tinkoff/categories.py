@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.future import select
 
 # Собственные модули
-from models import CategoryExpenses, CategoryKeyword, Expense
+from models import CategoryExpenses, Expense
 
 
 def get_categories_from_db(db):

@@ -25,7 +25,6 @@ from utils.tinkoff.browser_utils import (
     click_button
 )
 
-# from routes.directory.tinkoff.categories import get_categories_with_keywords
 from routes.directory.tinkoff.expenses import save_expenses_to_db
 
 from routes.auth_tinkoff import (
@@ -59,7 +58,6 @@ async def load_expenses_from_site(browser, unix_range_start, unix_range_end, db,
         file_path = await wait_for_new_download(start_time=start_time, timeout=20)
 
         # Обработка CSV и сохранение в БД
-        # categories_dict = get_categories_with_keywords(db)
         expenses = await get_json_expenses_from_csv(db, file_path, time_zone)
 
         return {
@@ -220,11 +218,6 @@ async def get_json_expenses_from_csv(db, file_path, target_timezone):
             if current["amount"] < 0:
                 current["category"] = None
                 total_expense += abs(current["amount"])
-                # Определение категории по названию
-                # for category_title, data in categories_dict.items():
-                #     if any(keyword.lower() in current["description"].lower() for keyword in data["keywords"]):
-                #         current["category"] = category_title  # Сохраняем название категории
-                #         break
 
                 categorized_expenses.append({
                     "date_time": current["datetime"].strftime("%d.%m.%Y %H:%M:%S"),
@@ -241,10 +234,6 @@ async def get_json_expenses_from_csv(db, file_path, target_timezone):
             last_transaction = transactions[i]
             if last_transaction["amount"] < 0:
                 total_expense += abs(last_transaction["amount"])
-                # for category_title, data in categories_dict.items():
-                #     if any(keyword.lower() in last_transaction["description"].lower() for keyword in data["keywords"]):
-                #         last_transaction["category"] = data["id"]
-                #         break
 
                 categorized_expenses.append({
                     "date_time": last_transaction["datetime"].strftime("%d.%m.%Y %H:%M:%S"),

@@ -1,11 +1,6 @@
 // Код jQuery для настройки столбцов с изменяемой шириной
 $(window).on('load', function() {
     $('#expensesTable').resizableColumns();
-    
-    // $('#itemsPerPageSelect').select2({
-    //     width: 'auto',  // Подгонка под размер текста
-    //     minimumResultsForSearch: Infinity  // Убираем поле поиска
-    // });
 });
 
 window.isMiniApp = document.getElementById("app").dataset.miniapp === "true";
@@ -40,7 +35,7 @@ document.addEventListener("DOMContentLoaded", async function () {
             dateRangePicker.setDate([formatRangeStart, formatRangeEnd], true);
         setPeriodLabel([dateRangeStart, dateRangeEnd]);
     } else if (period) {
-        // setPeriodLabelByDefault(getPeriodLabel(period));
+        setPeriodLabelByDefault(getPeriodLabel(period));
     } else {
         loadExpensesByDefaultPeriod('month');
     }
