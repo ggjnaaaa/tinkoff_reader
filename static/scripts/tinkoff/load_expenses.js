@@ -159,7 +159,6 @@ async function loadExpensesByPeriod(startDate, endDate) {
             showInfoToast("Нет данных за выбранный период.");
             return;
         }
-
         await loadExpenses(data);
     } catch (error) {
         console.error('Ошибка при загрузке расходов:', error);

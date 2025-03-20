@@ -14,7 +14,7 @@ const dateRangePicker = isMiniApp ? null : flatpickr("#dateRange", {
     locale: "ru",
     maxDate: "today",
     onChange: function(selectedDates) {
-        if (selectedDates.length === 2) {
+        if (!isInitialLoad && selectedDates.length === 2) {
             const startDate = selectedDates[0];
             const endDate = selectedDates[1];
 

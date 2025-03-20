@@ -5,6 +5,8 @@ $(window).on('load', function() {
 
 window.isMiniApp = document.getElementById("app").dataset.miniapp === "true";
 
+let isInitialLoad = false; // Флаг для отслеживания начальной загрузки
+
 // Вызов отображения расходов за месяц
 document.addEventListener("DOMContentLoaded", async function () {
     showGlobalLoader();
@@ -32,7 +34,11 @@ document.addEventListener("DOMContentLoaded", async function () {
         const formatRangeEnd = formatFullDate(dateRangeEnd);
         
         if (document.getElementById("dateRange"))
+        {
+            isInitialLoad = true; // Включаем флаг начальной загрузки
             dateRangePicker.setDate([formatRangeStart, formatRangeEnd], true);
+            isInitialLoad = false; // Отключаем флаг после установки дат
+        }
         setPeriodLabel([dateRangeStart, dateRangeEnd]);
     } else if (period) {
         setPeriodLabelByDefault(getPeriodLabel(period));
@@ -139,24 +145,17 @@ async function saveKeywords() {
     showGlobalLoader();
     const keywords = [];
 
-    document.querySelectorAll('.custom-select').forEach(select => {
-        const categoryTextElement = select.querySelector('.category-text');
-        const categoryId = categoryTextElement.getAttribute('data-category-id');
-        const categoryName = categoryTextElement.textContent;
+    // Используем журнал изменений для формирования данных
+    Object.keys(expenseManager.changesJournal).forEach(expenseId => {
+        const change = expenseManager.changesJournal[expenseId];
 
-        let description = null;
-        const row = select.closest('tr');
+        // Получаем исходную категорию из originalExpenses
+        const originalExpense = expenseManager.originalExpenses.find(expense => expense.id == expenseId);
+        const originalCategoryId = originalExpense ? originalExpense.id : null;
 
-        if (isMiniApp) {
-            description = row.querySelector('td:nth-child(2)').textContent;
-        } else {
-            description = row.querySelector('td:nth-child(4)').textContent;
-        }
-
-        const expenseId = select.getAttribute('data-id'); // Берём ID расхода
-
-        if (description && !keywords.some(keyword => keyword.description === description && keyword.category_id === categoryId)) {
-            keywords.push({ expense_id: expenseId, category_id: categoryId});
+        // Если изменение отличается от исходного, добавляем его в keywords
+        if (change.category_id != originalCategoryId) {
+            keywords.push({ expense_id: expenseId, category_id: change.category_id });
         }
     });
 
@@ -184,6 +183,7 @@ async function saveKeywords() {
 
         const data = await response.json();
         showNotificationToast(data.message);
+        expenseManager.clearChanges();
         window.Telegram.WebApp.close();
     } catch (error) {
         console.error('Ошибка при сохранении ключевых слов:', error);

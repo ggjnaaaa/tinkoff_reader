@@ -6,6 +6,9 @@ class ExpenseManager {
         this.categories = categories;
         this.isMiniApp = isMiniApp;
 
+        // Журнал изменений
+        this.changesJournal = {};
+
         // Параметры пагинации
         this.currentPage = 1;
         if (!isMiniApp)
@@ -98,6 +101,7 @@ class ExpenseManager {
 
     // Отображение данных в таблице
     render() {
+        this.applyChangesToExpenses();
         const tableBody = $('#expensesTable tbody');
         tableBody.empty();
     
@@ -168,14 +172,7 @@ class ExpenseManager {
             });
 
             row.find('.close-icon').click(() => {
-                const categoryTextElement = row.find('.category-text');
-                
-                // Очищаем текст и меняем на "Не указана"
-                categoryTextElement.text('Не указана');
-                categoryTextElement.attr('data-category-id', null);
-            
-                // Также можем изменить цвет на прозрачный
-                categoryTextElement.css('background-color', 'transparent');
+                this.clickCategoryReset(row);
             });
             
             tableBody.append(row);
@@ -205,15 +202,35 @@ class ExpenseManager {
                 if (this.isMiniApp) {
                     $('#footer-save').show();
                 }
-
+    
                 // Обновляем текст и ID в элементе .category-text
                 const selectedCategory = target.find('.category-text');
+                const expenseId = target.attr('data-id'); // Получаем ID расхода
+                const previousCategoryId = selectedCategory.attr('data-category-id');
+
+                // Получаем исходную категорию из originalExpenses
+                const originalExpense = this.originalExpenses.find(expense => expense.id == expenseId);
+                const originalCategoryId = originalExpense ? originalExpense.id : null;
+
+                if (category.id == originalCategoryId) {
+                    delete this.changesJournal[expenseId]; // Удаляем изменение, если оно вернулось к исходному
+                } 
+                else if (previousCategoryId != category.id) {
+                    // Обновляем журнал изменений
+                    this.changesJournal[expenseId] = {
+                        category_id: category.id.toString(),
+                        category_name: category.category_name
+                    };
+                }
+
                 selectedCategory.text(category.category_name);
                 selectedCategory.attr('data-category-id', category.id);
                 const circleSelection = target.find('.circle-selection');
                 circleSelection.css('background-color', category.color || 'transparent');
+
                 // Закрываем dropdown
                 wrapper.remove();
+
             });
             dropdown.append(option);
         });
@@ -283,6 +300,64 @@ class ExpenseManager {
                 }
             });
         }, 0);
+    }
+
+    // Применяем изменения из журнала к данным
+    applyChangesToExpenses() {
+        this.filteredExpenses = this.originalExpenses.map(expense => {
+            if (this.changesJournal[expense.id]) {
+                return {
+                    ...expense,
+                    category: this.changesJournal[expense.id].category_name,
+                };
+            }
+            return expense;
+        });
+    }
+
+    clickCategoryReset(row) {
+        if (this.isMiniApp) {
+            $('#footer-save').show();
+        }
+        
+        const categoryTextElement = row.find('.category-text');
+        const expenseId = row.find('.custom-select').attr('data-id'); // Получаем ID расхода
+    
+        // Получаем исходную категорию из originalExpenses
+        const originalExpense = this.originalExpenses.find(expense => expense.id.toString() == expenseId);
+        const originalCategoryId = originalExpense ? originalExpense.id : null;
+    
+        // Если исходная категория уже "Не указана", удаляем запись из журнала
+        if (originalCategoryId == null) {
+            delete this.changesJournal[expenseId]; // Удаляем изменение, если оно совпадает с исходным
+        } else {
+            // Иначе добавляем изменение в журнал
+            this.changesJournal[expenseId] = {
+                category_id: null,
+                category_name: 'Не указана',
+            };
+        }
+    
+        // Очищаем текст и меняем на "Не указана"
+        categoryTextElement.text('Не указана');
+        categoryTextElement.attr('data-category-id', null);
+    
+        // Также можем изменить цвет на прозрачный
+        categoryTextElement.css('background-color', 'transparent');
+    }
+
+    clearChanges() {
+        // Применяем изменения из журнала к оригинальным расходам
+        for (const expenseId in this.changesJournal) {
+            const change = this.changesJournal[expenseId];
+            const originalExpense = this.originalExpenses.find(expense => expense.id.toString() === expenseId);
+            if (originalExpense) {
+                originalExpense.category = change.category_name;
+            }
+        }
+
+        // Очищаем журнал изменений
+        this.changesJournal = [];
     }
     
 }
