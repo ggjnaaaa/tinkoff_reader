@@ -304,7 +304,7 @@ class ExpenseManager {
 
     // Применяем изменения из журнала к данным
     applyChangesToExpenses() {
-        this.filteredExpenses = this.originalExpenses.map(expense => {
+        this.filteredExpenses = this.filteredExpenses.map(expense => {
             if (this.changesJournal[expense.id]) {
                 return {
                     ...expense,

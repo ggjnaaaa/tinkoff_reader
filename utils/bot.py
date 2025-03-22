@@ -20,11 +20,8 @@ def check_miniapp_token(token: str):
         chat_id = int(user_data.get("chat_id"))
         auth_date = int(user_data.get("auth_date", 0))
 
-        if (int(time.time()) - auth_date) > 25 * 3600:
-            raise HTTPException(status_code=401, detail="Токен истёк. Запросите ссылку заново.")
-
         if not chat_id:
-            raise HTTPException(status_code=400, detail="Некорректный токен: отсутствует chat_id.")
+            raise HTTPException(status_code=400, detail="Некорректный токен.")
 
         return True
     except ValueError as e:

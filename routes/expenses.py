@@ -35,7 +35,7 @@ from database import Session
 from models import SaveKeywordsRequest
 from auth import create_temp_token, verify_bot_token
 
-from dependencies import get_authenticated_user
+from dependencies import get_authenticated_user, get_current_user, get_token_from_cookie
 
 
 router = APIRouter()
@@ -112,15 +112,22 @@ async def get_expenses(
                                      get_import_times(db))
 
 
+def get_user_role_from_request(request: Request):
+    token = get_token_from_cookie(request)
+    if isinstance(token, RedirectResponse):
+        return token
+    payload = get_current_user(token)
+    if isinstance(payload, RedirectResponse):
+        return payload
+    return payload.get("role")
+
+
 async def process_bot_request(token: str, db: Session) -> str:
     """Проверяет токен бота и возвращает номер карты."""
     try:
         user_data = verify_bot_token(token)
         chat_id = int(user_data.get("chat_id"))
         auth_date = int(user_data.get("auth_date", 0))
-
-        if (int(time.time()) - auth_date) > 25 * 3600:
-            raise HTTPException(status_code=401, detail="Токен истёк.")
 
         card_num = get_card_number_by_chat_id(db, chat_id)
         if not card_num:
@@ -147,6 +154,8 @@ def generate_expense_response(
         import_times: dict
     ):
     """Формирует JSON или HTML-ответ."""
+    user_role = "admin"#get_user_role_from_request(request)
+
     if not expenses_data["expenses"]:
         error_message = "Данные за выбранный период отсутствуют."
         if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -159,6 +168,7 @@ def generate_expense_response(
                                                                                 "can_view_all_expenses": can_view_all_expenses,
                                                                                 "first_import_time": import_times["expenses"],
                                                                                 "second_import_time": import_times["full"],
+                                                                                "role": user_role
                                                                                 })
 
     if request.headers.get("X-Requested-With") == "XMLHttpRequest":
@@ -171,6 +181,7 @@ def generate_expense_response(
                                                                             "can_view_all_expenses": can_view_all_expenses,
                                                                             "first_import_time": import_times["expenses"],
                                                                             "second_import_time": import_times["full"],
+                                                                            "role": user_role
                                                                             })
 
 

@@ -4,7 +4,7 @@
 import asyncio
 
 # Сторонние модули
-from fastapi import APIRouter, HTTPException, Body, Request, Query, Depends
+from fastapi import APIRouter, HTTPException, Body, Request, Query, Depends, BackgroundTasks
 from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 from typing import Optional
@@ -43,7 +43,7 @@ def get_db():
 
 
 @router.get("/tinkoff/")
-async def get_login_type(request: Request, token: Optional[str] = Query(default=None)):
+async def get_login_type(request: Request, background_tasks: BackgroundTasks, token: Optional[str] = Query(default=None), db: Session = Depends(get_db)):
     """
     Вход в тинькофф.
     Инициализирует браузер, если нужно.
@@ -75,7 +75,7 @@ async def get_login_type(request: Request, token: Optional[str] = Query(default=
         detected_type = await detect_page_type(browser, 10)  # Асинхронное определение типа страницы
 
         if detected_type:
-            return await next_page(request=request, step=detected_type.value, token=token)
+            return await next_page(request=request, background_tasks=background_tasks, step=detected_type.value, token=token, db=db)
         else:
             raise HTTPException(status_code=500, detail="Ошибка входа в тинькофф. Попробуйте войти снова")
     except Exception as e:
@@ -112,7 +112,11 @@ async def login(request: Request, data: str = Body(...), token: Optional[str] = 
 
 
 @router.get("/tinkoff/next/")
-async def next_page(request: Request, step: str | None = Query(default=None), db: Session = Depends(get_db), token: Optional[str] = Query(default=None)):
+async def next_page(request: Request, 
+                    background_tasks: BackgroundTasks,
+                    step: str | None = Query(default=None), 
+                    db: Session = Depends(get_db), 
+                    token: Optional[str] = Query(default=None)):
     """
     Универсальный эндпоинт для загрузки следующей страницы.
     """
@@ -158,7 +162,7 @@ async def next_page(request: Request, step: str | None = Query(default=None), db
     if page_type == PageType.EXPENSES:
         if token:
             from utils.tinkoff.fixed_time_import_expenses import resume_load_expenses
-            await resume_load_expenses(db, token)
+            background_tasks.add_task(resume_load_expenses, db, token)
             return templates.TemplateResponse("tinkoff/success_login.html", {"request": request})
         redirect = redirect_by_token(request)
         if redirect:

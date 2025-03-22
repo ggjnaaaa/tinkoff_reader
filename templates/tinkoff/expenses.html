@@ -44,7 +44,7 @@
 {% endblock %}
 
 {% block content %}
-    {% if not is_miniapp %}
+    {% if not is_miniapp and role=='admin' %}
         <div class="menu-wrapper">
             <!-- Кнопка-гамбургер -->
             <button class="menu-toggle" onclick="toggleMenu()">☰</button>
