@@ -88,9 +88,7 @@ def get_today_expenses(db):
     # Определяем временные диапазоны
     unix_range_start, unix_range_end = get_period_range(
         timezone="Europe/Moscow",
-        range_start='2023-01-01',
-        range_end='2025-03-22'
-        # period='day'
+        period='day'
     )
 
     # Получаем данные расходов

@@ -93,10 +93,10 @@ async def load_expenses(export_type: str):
             if export_type == "expenses":
                 send_expense_notification(db)
             elif export_type == "full":
-                sync_expenses_to_sheet_no_id(db, "rolling26hours")
+                sync_expenses_to_sheet_no_id(db)
             elif export_type == "all":
                 send_expense_notification(db)
-                sync_expenses_to_sheet_no_id(db, "rolling26hours")
+                sync_expenses_to_sheet_no_id(db)
             logger.info(f"Успешно завершена автозагрузка расходов (Время (UTC): {datetime.now(timezone.utc).strftime('%d.%m.%Y %H:%M:%S')})")
             return
         except ValueError as e:
