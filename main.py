@@ -17,6 +17,7 @@ from routes import (
 )
 
 from utils.tinkoff.scheduler_utils import start_scheduler
+from utils.tinkoff.sync_google_category import start_inactivity_scheduler
  
 # FastAPI и роутер
 app = FastAPI()
@@ -32,6 +33,7 @@ app.include_router(scheduler.router)
 app.include_router(browser_session.router)
 
 # Запуск планировщика в отдельном потоке
-scheduler_thread = Thread(target=start_scheduler, daemon=True)
-scheduler_thread.start()
+Thread(target=start_scheduler, daemon=True).start()
+Thread(target=start_inactivity_scheduler, daemon=True).start()
+
 

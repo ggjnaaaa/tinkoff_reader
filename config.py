@@ -8,6 +8,8 @@ EXPENSES_URL: str = f"https://www.tbank.ru/auth/login/?redirectTo=%2Fevents%2Ffe
 PATH_TO_CHROME_PROFILE="./chrome_data/"   #             <--- ЗАМЕНИТЬ
 DOWNLOAD_DIRECTORY="./downloads/"   #                   <--- ЗАМЕНИТЬ
 GOOGLE_SHEETS_URL='https://docs.google.com/spreadsheets/...'  #                             <--- ЗАМЕНИТЬ
+GOOGLE_SHEETS_API_EXPENSES_SCRIPT = "https://script.google.com/macros/s/.../exec"  #        <--- ЗАМЕНИТЬ
+
 DATABASE_URL = "postgresql://...:...@.../..."  #                                            <--- ЗАМЕНИТЬ
 
 BOT_API_URL = "http://127.0.0.1:8001/"  #                                                   <--- ЗАМЕНИТЬ

@@ -10,6 +10,7 @@ import gspread
 
 from routes.directory.tinkoff.expenses import get_expenses_from_db
 from utils.tinkoff.time_utils import get_period_range
+from utils.tinkoff.sync_google_category import request_sync
 
 from config import GOOGLE_SHEETS_URL
 
@@ -46,6 +47,7 @@ def sync_expenses_to_sheet_no_id(db, period="3month", timezone_str="Europe/Mosco
     - Вывод числа и месяца при смене дня
     - Закрашивание строк с датами
     """
+    request_sync()  # Экстренный запрос на изменение категорий
 
     # Получаем расходы за нужный период
     unix_range_start, unix_range_end = get_period_range(timezone=timezone_str, period=period)
